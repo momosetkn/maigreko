@@ -7,6 +7,9 @@ kotlin = "2.2.0"
 kotlinxDatetime = "0.6.1"
 kotlinxSerializationJSON = "1.7.3"
 kotlinxCoroutines = "1.9.0"
+kotest = "5.8.0"
+detekt = "1.23.8"
+ktlint = "13.0.0"
 
 [libraries]
 kotlinGradlePlugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
@@ -14,9 +17,31 @@ kotlinxDatetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.r
 kotlinxSerialization = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJSON" }
 kotlinxCoroutines = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }
 
+kotestEngine = { module = "io.kotest:kotest-framework-engine-jvm", version.ref = "kotest" }
+kotestRunner = { module = "io.kotest:kotest-runner-junit5", version.ref = "kotest" }
+
+jdbcH2 = { module = "com.h2database:h2", version = "2.3.232" }
+jdbcMariadb = { module = "org.mariadb.jdbc:mariadb-java-client", version = "3.5.0" }
+jdbcMysql = { module = "mysql:mysql-connector-java", version = "8.0.33" }
+jdbcOracle = { module = "com.oracle.database.jdbc:ojdbc11", version = "21.15.0.0" }
+jdbcPostgresql = { module = "org.postgresql:postgresql", version = "42.7.4" }
+jdbcSqlserver = { module = "com.microsoft.sqlserver:mssql-jdbc", version = "12.8.1.jre11" }
+
+testcontainersBom = { module = "org.testcontainers:testcontainers-bom", version = "1.20.3" }
+testcontainersMariadb = { module = "org.testcontainers:mariadb" }
+testcontainersMysql = { module = "org.testcontainers:mysql" }
+testcontainersOracle = { module = "org.testcontainers:oracle-xe" }
+testcontainersPostgresql = { module = "org.testcontainers:postgresql" }
+testcontainersSqlserver = { module = "org.testcontainers:mssqlserver" }
+
 # Libraries can be bundled together for easier import
 [bundles]
 kotlinxEcosystem = ["kotlinxDatetime", "kotlinxSerialization", "kotlinxCoroutines"]
+kotest = ["kotestEngine", "kotestRunner"]
 
 [plugins]
+kotlinJvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlinPluginSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+
+detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
+ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlint" }
