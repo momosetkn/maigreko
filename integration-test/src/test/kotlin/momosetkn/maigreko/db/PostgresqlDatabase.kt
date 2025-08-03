@@ -2,6 +2,8 @@ package momosetkn.maigreko.db
 
 import org.testcontainers.containers.Container
 import org.testcontainers.containers.PostgreSQLContainer
+import java.sql.DriverManager
+import kotlin.use
 
 object PostgresqlDatabase {
     private var container: PostgreSQLContainer<*>? = null
@@ -28,6 +30,18 @@ object PostgresqlDatabase {
         container?.stop()
         println("database stop")
     }
+
+    @Synchronized
+    fun clear() {
+        getConnection().use {
+            val statement = it.createStatement()
+            val ddl = "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+            statement.execute(ddl)
+        }
+    }
+
+    private fun getConnection() =
+        DriverManager.getConnection(startedContainer.jdbcUrl, startedContainer.username, startedContainer.password)
 
     fun generateDdl(): String? {
         val commandResult = executeCommand(

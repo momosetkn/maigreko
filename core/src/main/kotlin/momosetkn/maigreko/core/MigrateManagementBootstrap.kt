@@ -1,7 +1,20 @@
 package momosetkn.maigreko.core
 
-object MigrateManagementInitialize {
-    fun createTable() =
+import momosetkn.maigreko.engine.MigrateEngine
+import org.komapper.core.dsl.QueryDsl
+import org.komapper.jdbc.JdbcDatabase
+
+class MigrateManagementBootstrap(
+    private val db: JdbcDatabase,
+    private val migrateEngine: MigrateEngine,
+) {
+    fun bootstrap() {
+        val maigrekoCreateTable = createTable()
+        val ddl = migrateEngine.forwardDdl(maigrekoCreateTable)
+        db.runQuery(QueryDsl.executeScript(ddl))
+    }
+
+    private fun createTable() =
         CreateTable(
             ifNotExists = true,
             tableName = "change_set_history",

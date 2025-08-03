@@ -33,4 +33,11 @@ class ChangeSetHistoryRepository(
                 .single(entity)
         )
     }
+
+    fun remove(entity: ChangeSetHistory) {
+        return db.runQuery(
+            QueryDsl.delete(cl)
+                .single(entity)
+        )
+    }
 }

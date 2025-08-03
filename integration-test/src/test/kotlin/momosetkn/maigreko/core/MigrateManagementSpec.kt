@@ -6,7 +6,7 @@ import momosetkn.PostgresqlColumnDetail
 import momosetkn.PostgresqlInfoDao
 import momosetkn.maigreko.db.PostgresDataSource
 import momosetkn.maigreko.db.PostgresqlDatabase
-import momosetkn.maigreko.engine.PosgresqlMigrateEngine
+import momosetkn.maigreko.engine.PostgreMigrateEngine
 import org.komapper.jdbc.JdbcDatabase
 import org.komapper.jdbc.JdbcDialects
 
@@ -14,16 +14,17 @@ class MigrateManagementSpec : FunSpec({
     lateinit var migrateManagement: MigrateManagement
     lateinit var dataSource: javax.sql.DataSource
     lateinit var db: JdbcDatabase
-    lateinit var posgresqlMigrateEngine: PosgresqlMigrateEngine
     beforeSpec {
         PostgresqlDatabase.start()
         val container = PostgresqlDatabase.startedContainer
         dataSource = PostgresDataSource(container)
         db = JdbcDatabase(dataSource = dataSource, dialect = JdbcDialects.get("postgresql"))
-        posgresqlMigrateEngine = PosgresqlMigrateEngine(db)
-        migrateManagement = MigrateManagement(db, posgresqlMigrateEngine)
+        migrateManagement = MigrateManagement(db, PostgreMigrateEngine())
     }
-    context("double execute") {
+    beforeEach {
+        PostgresqlDatabase.clear()
+    }
+    context("double forward") {
         test("can migrate") {
             val createTable = CreateTable(
                 tableName = "migrations",
@@ -43,8 +44,8 @@ class MigrateManagementSpec : FunSpec({
                 changes = listOf(createTable),
             )
 
-            migrateManagement.executeWithManagement(changeSet)
-            migrateManagement.executeWithManagement(changeSet)
+            migrateManagement.forwardWithManagement(changeSet)
+            migrateManagement.forwardWithManagement(changeSet)
             val postgresqlInfoDao = PostgresqlInfoDao(db)
             val columnDetails = postgresqlInfoDao.getColumnDetails("migrations")
             columnDetails.size shouldBe 1
@@ -58,6 +59,35 @@ class MigrateManagementSpec : FunSpec({
                 foreignTable = null,
                 foreignColumn = null,
             )
+            val constraintDetails = postgresqlInfoDao.getConstraintDetails("migrations")
+            constraintDetails.size shouldBe 0
+        }
+    }
+    context("rollback") {
+        test("can migrate") {
+            val createTable = CreateTable(
+                tableName = "migrations",
+                columns = listOf(
+                    Column(
+                        name = "version",
+                        type = "character varying(255)",
+                        columnConstraint = ColumnConstraint(primaryKey = true, nullable = false)
+                    )
+                )
+            )
+
+            val changeSet = ChangeSet(
+                filename = "filename",
+                author = "author",
+                changeSetId = "changeSetId",
+                changes = listOf(createTable),
+            )
+
+            migrateManagement.forwardWithManagement(changeSet)
+            migrateManagement.rollbackWithManagement(changeSet)
+            val postgresqlInfoDao = PostgresqlInfoDao(db)
+            val columnDetails = postgresqlInfoDao.getColumnDetails("migrations")
+            columnDetails.size shouldBe 0
             val constraintDetails = postgresqlInfoDao.getConstraintDetails("migrations")
             constraintDetails.size shouldBe 0
         }

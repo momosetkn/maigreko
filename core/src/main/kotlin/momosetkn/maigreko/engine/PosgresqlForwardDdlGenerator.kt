@@ -1,19 +1,14 @@
 package momosetkn.maigreko.engine
 
-import momosetkn.maigreko.core.Change
 import momosetkn.maigreko.core.Column
 import momosetkn.maigreko.core.ColumnConstraint
 import momosetkn.maigreko.core.CreateTable
 import momosetkn.maigreko.engine.StringUtils.collapseSpaces
-import org.komapper.core.dsl.QueryDsl
-import org.komapper.jdbc.JdbcDatabase
 
-class PosgresqlMigrateEngine(
-    private val db: JdbcDatabase,
-) : MigrateEngine {
+class PosgresqlForwardDdlGenerator : DDLGenerator {
     override fun createTable(
         createTable: CreateTable,
-    ) {
+    ): String {
         val ifNotExists = if (createTable.ifNotExists) "if not exists" else ""
         val columns = createTable.columns.joinToString(",\n") {
             listOfNotNull(
@@ -22,22 +17,11 @@ class PosgresqlMigrateEngine(
                 it.columnConstraint?.let(::constraint),
             ).joinToString(" ")
         }
-        val ddl =
-            """
+        return """
                 create table $ifNotExists ${createTable.tableName} (
                 $columns
                 )
             """.trimIndent().collapseSpaces()
-
-        db.runQuery(
-            QueryDsl.executeScript(ddl)
-        )
-    }
-
-    override fun execute(change: Change) {
-        when (change) {
-            is CreateTable -> createTable(change)
-        }
     }
 
     private fun constraint(columnConstraint: ColumnConstraint): String {
