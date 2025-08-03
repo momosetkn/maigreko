@@ -1,20 +1,22 @@
 package momosetkn.maigreko.core
 
+sealed interface Change
+
 data class CreateTable(
     val ifNotExists: Boolean = false,
     val tableName: String,
     val columns: List<Column>,
-)
+) : Change
 
 data class Column(
     val name: String,
     val type: String,
-    val value: Any? = null,
+    val defaultValue: Any? = null,
     val autoIncrement: Boolean = false,
-    val constraint: Constraint,
+    val columnConstraint: ColumnConstraint? = null,
 )
 
-data class Constraint(
+data class ColumnConstraint(
     val nullable: Boolean = false,
     val primaryKey: Boolean = false,
     val unique: Boolean = false,

@@ -10,10 +10,7 @@ dependencies {
     implementation(libs.jdbcPostgresql)
 
     // komapper
-    implementation(libs.komapperCore)
-    implementation(libs.komapperJdbc)
-    implementation(libs.komapperAnnotation)
-    implementation(libs.komapperTemplate)
+    implementation(libs.komapperStarterJdbc)
     platform(libs.komapperPlatform).let {
         implementation(it)
         ksp(it)

@@ -35,11 +35,8 @@ testcontainersPostgresql = { module = "org.testcontainers:postgresql" }
 testcontainersSqlserver = { module = "org.testcontainers:mssqlserver" }
 
 komapperPlatform = { module = "org.komapper:komapper-platform", version = "5.4.0" }
-komapperCore = { module = "org.komapper:komapper-core" }
-komapperJdbc = { module = "org.komapper:komapper-jdbc" }
-komapperAnnotation = { module = "org.komapper:komapper-annotation" }
+komapperStarterJdbc = { module = "org.komapper:komapper-starter-jdbc" }
 komapperProcessor = { module = "org.komapper:komapper-processor" }
-komapperTemplate = { module = "org.komapper:komapper-template" }
 komapperDialectPostgresqlJdbc = { module = "org.komapper:komapper-dialect-postgresql-jdbc" }
 komapperDialectH2Jdbc = { module = "org.komapper:komapper-dialect-h2-jdbc" }
 
