@@ -34,6 +34,17 @@ testcontainersOracle = { module = "org.testcontainers:oracle-xe" }
 testcontainersPostgresql = { module = "org.testcontainers:postgresql" }
 testcontainersSqlserver = { module = "org.testcontainers:mssqlserver" }
 
+komapperPlatform = { module = "org.komapper:komapper-platform", version = "5.4.0" }
+komapperCore = { module = "org.komapper:komapper-core" }
+komapperJdbc = { module = "org.komapper:komapper-jdbc" }
+komapperAnnotation = { module = "org.komapper:komapper-annotation" }
+komapperProcessor = { module = "org.komapper:komapper-processor" }
+komapperTemplate = { module = "org.komapper:komapper-template" }
+komapperDialectPostgresqlJdbc = { module = "org.komapper:komapper-dialect-postgresql-jdbc" }
+komapperDialectH2Jdbc = { module = "org.komapper:komapper-dialect-h2-jdbc" }
+
+ktlintRuleEngineCore = { module = "com.pinterest.ktlint:ktlint-rule-engine-core", version ="1.7.1" }
+
 # Libraries can be bundled together for easier import
 [bundles]
 kotlinxEcosystem = ["kotlinxDatetime", "kotlinxSerialization", "kotlinxCoroutines"]
@@ -45,3 +56,6 @@ kotlinPluginSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", 
 
 detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
 ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlint" }
+
+ksp = { id = "com.google.devtools.ksp", version = "2.2.0-2.0.2" }
+komapper = { id = "org.komapper.gradle", version = "5.4.0" }

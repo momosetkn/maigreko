@@ -18,4 +18,21 @@ allprojects {
     tasks.test {
         useJUnitPlatform()
     }
+
+//    detekt {
+//        parallel = true
+//        autoCorrect = true
+//        config.from("$rootDir/config/detekt.yml")
+//        buildUponDefaultConfig = true
+//        basePath = rootDir.absolutePath
+//    }
+
+    ktlint {
+        version.set(catalog.ktlintRuleEngineCore.get().version)
+        filter {
+            exclude { entry ->
+                entry.file.toString().contains("/generated/")
+            }
+        }
+    }
 }
