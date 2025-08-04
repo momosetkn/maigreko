@@ -262,4 +262,67 @@ class PosgresqlDdlGeneratorSpec : FunSpec({
             """.trimIndent()
         }
     }
+
+    context("dropTable") {
+        test("drop simple table") {
+            val createTable = CreateTable(
+                tableName = "temporary_logs",
+                columns = listOf(
+                    Column(
+                        name = "id",
+                        type = "integer",
+                        columnConstraint = ColumnConstraint(primaryKey = true)
+                    ),
+                    Column(
+                        name = "message",
+                        type = "text"
+                    )
+                )
+            )
+
+            val ddl = subject.dropTable(createTable)
+
+            ddl shouldBe """
+                drop table temporary_logs
+            """.trimIndent()
+        }
+    }
+
+    context("dropForeignKey") {
+        test("drop foreign key constraint") {
+            val addForeignKey = AddForeignKey(
+                constraintName = "fk_orders_users",
+                tableName = "orders",
+                columnNames = listOf("user_id"),
+                referencedTableName = "users",
+                referencedColumnNames = listOf("id")
+            )
+
+            val ddl = subject.dropForeignKey(addForeignKey)
+
+            ddl shouldBe """
+                alter table orders
+                drop constraint fk_orders_users
+            """.trimIndent()
+        }
+    }
+
+    context("dropColumn") {
+        test("drop simple column") {
+            val addColumn = AddColumn(
+                tableName = "users",
+                column = Column(
+                    name = "address",
+                    type = "character varying(255)"
+                )
+            )
+
+            val ddl = subject.dropColumn(addColumn)
+
+            ddl shouldBe """
+                alter table users
+                drop column address
+            """.trimIndent()
+        }
+    }
 })
