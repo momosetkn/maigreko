@@ -2,14 +2,9 @@ package momosetkn.maigreko.engine
 
 import momosetkn.maigreko.core.AddColumn
 import momosetkn.maigreko.core.AddForeignKey
-import momosetkn.maigreko.core.Column
-import momosetkn.maigreko.core.ColumnConstraint
+import momosetkn.maigreko.core.AddIndex
 import momosetkn.maigreko.core.CreateTable
-import momosetkn.maigreko.core.ForeignKeyAction
-import momosetkn.maigreko.core.RenameColumn
-import momosetkn.maigreko.core.RenameTable
 import momosetkn.maigreko.engine.StringUtils.collapseSpaces
-import momosetkn.maigreko.engine.StringUtils.normalizeText
 
 interface PosgresqlDropDdlGenerator : DDLGenerator {
     override fun dropTable(createTable: CreateTable): String {
@@ -29,6 +24,12 @@ interface PosgresqlDropDdlGenerator : DDLGenerator {
         return """
                 alter table ${addColumn.tableName}
                 drop column ${addColumn.column.name}
+            """.trimIndent().collapseSpaces()
+    }
+
+    override fun dropIndex(addIndex: AddIndex): String {
+        return """
+                drop index ${addIndex.indexName}
             """.trimIndent().collapseSpaces()
     }
 }

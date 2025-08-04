@@ -38,6 +38,13 @@ data class RenameColumn(
     val newColumnName: String,
 ) : Change
 
+data class AddIndex(
+    val indexName: String,
+    val tableName: String,
+    val columnNames: List<String>,
+    val unique: Boolean = false,
+) : Change
+
 enum class ForeignKeyAction {
     CASCADE,
     SET_NULL,

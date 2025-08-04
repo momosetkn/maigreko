@@ -2,6 +2,7 @@ package momosetkn.maigreko.engine
 
 import momosetkn.maigreko.core.AddColumn
 import momosetkn.maigreko.core.AddForeignKey
+import momosetkn.maigreko.core.AddIndex
 import momosetkn.maigreko.core.Change
 import momosetkn.maigreko.core.CreateTable
 import momosetkn.maigreko.core.RenameColumn
@@ -17,6 +18,7 @@ open class MigrateEngine(
             is AddColumn -> forwardMigrateEngine.addColumn(change)
             is RenameTable -> forwardMigrateEngine.renameTable(change)
             is RenameColumn -> forwardMigrateEngine.renameColumn(change)
+            is AddIndex -> forwardMigrateEngine.addIndex(change)
         }
     }
 
@@ -27,6 +29,7 @@ open class MigrateEngine(
             is AddColumn -> forwardMigrateEngine.dropColumn(change)
             is RenameTable -> forwardMigrateEngine.reverseRenameTable(change)
             is RenameColumn -> forwardMigrateEngine.reverseRenameColumn(change)
+            is AddIndex -> forwardMigrateEngine.dropIndex(change)
         }
     }
 }

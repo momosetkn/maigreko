@@ -1,14 +1,8 @@
 package momosetkn.maigreko.engine
 
-import momosetkn.maigreko.core.AddColumn
 import momosetkn.maigreko.core.AddForeignKey
-import momosetkn.maigreko.core.Column
-import momosetkn.maigreko.core.ColumnConstraint
-import momosetkn.maigreko.core.CreateTable
+import momosetkn.maigreko.core.AddIndex
 import momosetkn.maigreko.core.ForeignKeyAction
-import momosetkn.maigreko.core.RenameColumn
-import momosetkn.maigreko.core.RenameTable
-import momosetkn.maigreko.engine.StringUtils.collapseSpaces
 import momosetkn.maigreko.engine.StringUtils.normalizeText
 
 interface PosgresqlAddKeyDdlGenerator : DDLGenerator {
@@ -47,5 +41,15 @@ interface PosgresqlAddKeyDdlGenerator : DDLGenerator {
             ForeignKeyAction.RESTRICT -> "restrict"
             ForeignKeyAction.NO_ACTION -> "no action"
         }
+    }
+
+    override fun addIndex(addIndex: AddIndex): String {
+        val columnNames = addIndex.columnNames.joinToString(", ")
+        val uniqueKeyword = if (addIndex.unique) "unique " else ""
+
+        return """
+            |create ${uniqueKeyword}index ${addIndex.indexName}
+            |on ${addIndex.tableName} ($columnNames)
+            """.trimMargin().normalizeText()
     }
 }

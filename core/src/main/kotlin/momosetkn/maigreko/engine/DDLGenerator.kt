@@ -2,11 +2,12 @@ package momosetkn.maigreko.engine
 
 import momosetkn.maigreko.core.AddColumn
 import momosetkn.maigreko.core.AddForeignKey
+import momosetkn.maigreko.core.AddIndex
 import momosetkn.maigreko.core.CreateTable
 import momosetkn.maigreko.core.RenameColumn
 import momosetkn.maigreko.core.RenameTable
-import kotlin.String
 
+@Suppress("TooManyFunctions")
 interface DDLGenerator {
     fun createTable(createTable: CreateTable): String
 
@@ -23,6 +24,10 @@ interface DDLGenerator {
     fun dropForeignKey(addForeignKey: AddForeignKey): String
 
     fun dropColumn(addColumn: AddColumn): String
+
+    fun addIndex(addIndex: AddIndex): String
+
+    fun dropIndex(addIndex: AddIndex): String
 
     fun reverseRenameTable(renameTable: RenameTable): String {
         val reverseRenameTable = renameTable.copy(

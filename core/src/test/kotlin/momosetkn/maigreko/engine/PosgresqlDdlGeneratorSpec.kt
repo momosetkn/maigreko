@@ -4,6 +4,7 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import momosetkn.maigreko.core.AddColumn
 import momosetkn.maigreko.core.AddForeignKey
+import momosetkn.maigreko.core.AddIndex
 import momosetkn.maigreko.core.Column
 import momosetkn.maigreko.core.ColumnConstraint
 import momosetkn.maigreko.core.CreateTable
@@ -322,6 +323,85 @@ class PosgresqlDdlGeneratorSpec : FunSpec({
             ddl shouldBe """
                 alter table users
                 drop column address
+            """.trimIndent()
+        }
+    }
+
+    context("addIndex") {
+        test("create regular index") {
+            val addIndex = AddIndex(
+                indexName = "idx_users_email",
+                tableName = "users",
+                columnNames = listOf("email")
+            )
+
+            val ddl = subject.addIndex(addIndex)
+
+            ddl shouldBe """
+                create index idx_users_email
+                on users (email)
+            """.trimIndent()
+        }
+
+        test("create unique index") {
+            val addIndex = AddIndex(
+                indexName = "idx_users_username",
+                tableName = "users",
+                columnNames = listOf("username"),
+                unique = true
+            )
+
+            val ddl = subject.addIndex(addIndex)
+
+            ddl shouldBe """
+                create unique index idx_users_username
+                on users (username)
+            """.trimIndent()
+        }
+
+        test("create composite index") {
+            val addIndex = AddIndex(
+                indexName = "idx_orders_user_date",
+                tableName = "orders",
+                columnNames = listOf("user_id", "order_date")
+            )
+
+            val ddl = subject.addIndex(addIndex)
+
+            ddl shouldBe """
+                create index idx_orders_user_date
+                on orders (user_id, order_date)
+            """.trimIndent()
+        }
+    }
+
+    context("dropIndex") {
+        test("drop regular index") {
+            val addIndex = AddIndex(
+                indexName = "idx_users_email",
+                tableName = "users",
+                columnNames = listOf("email")
+            )
+
+            val ddl = subject.dropIndex(addIndex)
+
+            ddl shouldBe """
+                drop index idx_users_email
+            """.trimIndent()
+        }
+
+        test("drop unique index") {
+            val addIndex = AddIndex(
+                indexName = "idx_users_username",
+                tableName = "users",
+                columnNames = listOf("username"),
+                unique = true
+            )
+
+            val ddl = subject.dropIndex(addIndex)
+
+            ddl shouldBe """
+                drop index idx_users_username
             """.trimIndent()
         }
     }
