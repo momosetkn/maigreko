@@ -395,7 +395,7 @@ class MigrateManagementIntegrationSpec : FunSpec({
             columnsAfterRollback[0].columnName shouldBe "id"
         }
 
-        test("can add column with position") {
+        test("should throw exception when using position with PostgreSQL") {
             // First create a table with multiple columns
             val createTable = CreateTable(
                 tableName = "employees",
@@ -425,9 +425,9 @@ class MigrateManagementIntegrationSpec : FunSpec({
                 changes = listOf(createTable),
             )
 
-//            migrateManagement.forwardWithManagement(createTableChangeSet)
+            migrateManagement.forwardWithManagement(createTableChangeSet)
 
-            // Add a column after first_name
+            // Add a column after first_name - should throw exception
             val addMiddleNameColumn = AddColumn(
                 tableName = "employees",
                 column = Column(
@@ -445,9 +445,13 @@ class MigrateManagementIntegrationSpec : FunSpec({
                 changes = listOf(addMiddleNameColumn),
             )
 
-            migrateManagement.forwardWithManagement(listOf(createTableChangeSet, addMiddleNameChangeSet))
+            val exception = io.kotest.assertions.throwables.shouldThrow<IllegalArgumentException> {
+                migrateManagement.forwardWithManagement(addMiddleNameChangeSet)
+            }
 
-            // Add another column before last_name
+            exception.message shouldBe "PostgreSQL does not support AFTER or BEFORE clauses in ADD COLUMN statements"
+
+            // Add another column before last_name - should also throw exception
             val addPrefixColumn = AddColumn(
                 tableName = "employees",
                 column = Column(
@@ -465,18 +469,16 @@ class MigrateManagementIntegrationSpec : FunSpec({
                 changes = listOf(addPrefixColumn),
             )
 
-            migrateManagement.forwardWithManagement(addPrefixChangeSet)
+            val exception2 = io.kotest.assertions.throwables.shouldThrow<IllegalArgumentException> {
+                migrateManagement.forwardWithManagement(addPrefixChangeSet)
+            }
 
-            // Verify columns were added
+            exception2.message shouldBe "PostgreSQL does not support AFTER or BEFORE clauses in ADD COLUMN statements"
+
+            // Verify only the original columns exist
             val postgresqlInfoDao = PostgresqlInfoDao(db)
             val columnDetails = postgresqlInfoDao.getColumnDetails("employees")
-            columnDetails.size shouldBe 5
-
-            // Test rollback
-            migrateManagement.rollbackWithManagement(addPrefixChangeSet)
-            migrateManagement.rollbackWithManagement(addMiddleNameChangeSet)
-            val columnsAfterRollback = postgresqlInfoDao.getColumnDetails("employees")
-            columnsAfterRollback.size shouldBe 3
+            columnDetails.size shouldBe 3
         }
     }
 })

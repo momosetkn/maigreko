@@ -87,10 +87,9 @@ class PosgresqlForwardDdlGeneratorSpec : FunSpec({
 
             ddl shouldBe """
                 alter table orders
-                add constraint fk_orders_users 
-                foreign key (user_id) 
+                add constraint fk_orders_users
+                foreign key (user_id)
                 references users (id)
-                  
             """.trimIndent()
         }
 
@@ -108,10 +107,10 @@ class PosgresqlForwardDdlGeneratorSpec : FunSpec({
 
             ddl shouldBe """
                 alter table order_items
-                add constraint fk_order_items_orders 
-                foreign key (order_id) 
+                add constraint fk_order_items_orders
+                foreign key (order_id)
                 references orders (id)
-                on delete cascade  
+                on delete cascade
             """.trimIndent()
         }
 
@@ -132,8 +131,8 @@ class PosgresqlForwardDdlGeneratorSpec : FunSpec({
 
             ddl shouldBe """
                 alter table child
-                add constraint fk_complex 
-                foreign key (parent_id) 
+                add constraint fk_complex
+                foreign key (parent_id)
                 references parent (id)
                 on delete set null on update restrict deferrable initially deferred
             """.trimIndent()
@@ -152,10 +151,9 @@ class PosgresqlForwardDdlGeneratorSpec : FunSpec({
 
             ddl shouldBe """
                 alter table order_items
-                add constraint fk_composite 
-                foreign key (product_id, variant_id) 
+                add constraint fk_composite
+                foreign key (product_id, variant_id)
                 references products (id, variant_id)
-                  
             """.trimIndent()
         }
     }
@@ -174,7 +172,7 @@ class PosgresqlForwardDdlGeneratorSpec : FunSpec({
 
             ddl shouldBe """
                 alter table users
-                add column address character varying(255) 
+                add column address character varying(255)
             """.trimIndent()
         }
 
@@ -193,11 +191,11 @@ class PosgresqlForwardDdlGeneratorSpec : FunSpec({
 
             ddl shouldBe """
                 alter table products
-                add column is_active boolean default true not null 
+                add column is_active boolean default true not null
             """.trimIndent()
         }
 
-        test("column with position after") {
+        test("column with position after - should throw exception") {
             val addColumn = AddColumn(
                 tableName = "employees",
                 column = Column(
@@ -207,15 +205,14 @@ class PosgresqlForwardDdlGeneratorSpec : FunSpec({
                 afterColumn = "first_name"
             )
 
-            val ddl = subject.addColumn(addColumn)
+            val exception = io.kotest.assertions.throwables.shouldThrow<IllegalArgumentException> {
+                subject.addColumn(addColumn)
+            }
 
-            ddl shouldBe """
-                alter table employees
-                add column middle_name character varying(100) AFTER first_name
-            """.trimIndent()
+            exception.message shouldBe "PostgreSQL does not support AFTER or BEFORE clauses in ADD COLUMN statements"
         }
 
-        test("column with position before") {
+        test("column with position before - should throw exception") {
             val addColumn = AddColumn(
                 tableName = "employees",
                 column = Column(
@@ -225,12 +222,11 @@ class PosgresqlForwardDdlGeneratorSpec : FunSpec({
                 beforeColumn = "last_name"
             )
 
-            val ddl = subject.addColumn(addColumn)
+            val exception = io.kotest.assertions.throwables.shouldThrow<IllegalArgumentException> {
+                subject.addColumn(addColumn)
+            }
 
-            ddl shouldBe """
-                alter table employees
-                add column prefix character varying(10) BEFORE last_name
-            """.trimIndent()
+            exception.message shouldBe "PostgreSQL does not support AFTER or BEFORE clauses in ADD COLUMN statements"
         }
     }
 

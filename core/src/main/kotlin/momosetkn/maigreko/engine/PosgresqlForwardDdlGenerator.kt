@@ -8,7 +8,7 @@ import momosetkn.maigreko.core.CreateTable
 import momosetkn.maigreko.core.ForeignKeyAction
 import momosetkn.maigreko.core.RenameColumn
 import momosetkn.maigreko.core.RenameTable
-import momosetkn.maigreko.engine.StringUtils.collapseSpaces
+import momosetkn.maigreko.engine.StringUtils.normalizeText
 
 class PosgresqlForwardDdlGenerator : DDLGenerator {
     override fun createTable(
@@ -23,10 +23,10 @@ class PosgresqlForwardDdlGenerator : DDLGenerator {
             ).joinToString(" ")
         }
         return """
-                create table $ifNotExists ${createTable.tableName} (
-                $columns
-                )
-            """.trimIndent().collapseSpaces()
+                |create table $ifNotExists ${createTable.tableName} (
+                |$columns
+                |)
+            """.trimMargin().normalizeText()
     }
 
     override fun addForeignKey(addForeignKey: AddForeignKey): String {
@@ -48,15 +48,19 @@ class PosgresqlForwardDdlGenerator : DDLGenerator {
         }
 
         return """
-            alter table ${addForeignKey.tableName}
-            add constraint ${addForeignKey.constraintName} 
-            foreign key ($columnNames) 
-            references ${addForeignKey.referencedTableName} ($referencedColumnNames)
-            $onDelete $onUpdate $deferrable
-            """.trimIndent().collapseSpaces()
+            |alter table ${addForeignKey.tableName}
+            |add constraint ${addForeignKey.constraintName} 
+            |foreign key ($columnNames) 
+            |references ${addForeignKey.referencedTableName} ($referencedColumnNames)
+            |$onDelete $onUpdate $deferrable
+            """.trimMargin().normalizeText()
     }
 
     override fun addColumn(addColumn: AddColumn): String {
+        require(addColumn.afterColumn == null && addColumn.beforeColumn == null) {
+            "PostgreSQL does not support AFTER or BEFORE clauses in ADD COLUMN statements"
+        }
+
         val column = addColumn.column
         val columnDefinition = listOfNotNull(
             nameWithType(column),
@@ -64,30 +68,24 @@ class PosgresqlForwardDdlGenerator : DDLGenerator {
             column.columnConstraint?.let(::constraint),
         ).joinToString(" ")
 
-        val position = when {
-            addColumn.afterColumn != null -> "AFTER ${addColumn.afterColumn}"
-            addColumn.beforeColumn != null -> "BEFORE ${addColumn.beforeColumn}"
-            else -> ""
-        }
-
         return """
-            alter table ${addColumn.tableName}
-            add column $columnDefinition $position
-            """.trimIndent().collapseSpaces()
+            |alter table ${addColumn.tableName}
+            |add column $columnDefinition
+            """.trimMargin().normalizeText()
     }
 
     override fun renameTable(renameTable: RenameTable): String {
         return """
-            alter table ${renameTable.oldTableName}
-            rename to ${renameTable.newTableName}
-            """.trimIndent().collapseSpaces()
+            |alter table ${renameTable.oldTableName}
+            |rename to ${renameTable.newTableName}
+            """.trimMargin().normalizeText()
     }
 
     override fun renameColumn(renameColumn: RenameColumn): String {
         return """
-            alter table ${renameColumn.tableName}
-            rename column ${renameColumn.oldColumnName} to ${renameColumn.newColumnName}
-            """.trimIndent().collapseSpaces()
+            |alter table ${renameColumn.tableName}
+            |rename column ${renameColumn.oldColumnName} to ${renameColumn.newColumnName}
+            """.trimMargin().normalizeText()
     }
 
     private fun formatForeignKeyAction(action: ForeignKeyAction): String {
