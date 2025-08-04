@@ -45,6 +45,13 @@ data class AddIndex(
     val unique: Boolean = false,
 ) : Change
 
+data class ModifyDataType(
+    val tableName: String,
+    val columnName: String,
+    val newDataType: String,
+    val oldDataType: String? = null, // require to rollback
+) : Change
+
 enum class ForeignKeyAction {
     CASCADE,
     SET_NULL,

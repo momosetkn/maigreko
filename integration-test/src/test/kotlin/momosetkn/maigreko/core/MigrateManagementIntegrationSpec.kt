@@ -481,4 +481,129 @@ class MigrateManagementIntegrationSpec : FunSpec({
             columnDetails.size shouldBe 3
         }
     }
+
+    context("modify data type") {
+        test("can modify column data type") {
+            // First create a table with a column
+            val createTable = CreateTable(
+                tableName = "products",
+                columns = listOf(
+                    Column(
+                        name = "id",
+                        type = "integer",
+                        columnConstraint = ColumnConstraint(primaryKey = true, nullable = false)
+                    ),
+                    Column(
+                        name = "price",
+                        type = "integer",
+                        columnConstraint = ColumnConstraint(nullable = false)
+                    )
+                )
+            )
+
+            val createTableChangeSet = ChangeSet(
+                filename = "create_products_table",
+                author = "author",
+                changeSetId = "create_products_table",
+                changes = listOf(createTable),
+            )
+
+            migrateManagement.forwardWithManagement(createTableChangeSet)
+
+            // Verify the initial column type
+            val postgresqlInfoDao = PostgresqlInfoDao(db)
+            val initialColumnDetails = postgresqlInfoDao.getColumnDetails("products")
+            val initialPriceColumn = initialColumnDetails.find { it.columnName == "price" }
+            initialPriceColumn?.type shouldBe "integer"
+
+            // Then modify the column data type
+            val modifyDataType = ModifyDataType(
+                tableName = "products",
+                columnName = "price",
+                newDataType = "numeric(10,2)",
+                oldDataType = "integer"
+            )
+
+            val modifyDataTypeChangeSet = ChangeSet(
+                filename = "modify_price_type",
+                author = "author",
+                changeSetId = "modify_price_type",
+                changes = listOf(modifyDataType),
+            )
+
+            migrateManagement.forwardWithManagement(modifyDataTypeChangeSet)
+
+            // Verify the column type was changed
+            val columnDetails = postgresqlInfoDao.getColumnDetails("products")
+            val priceColumn = columnDetails.find { it.columnName == "price" }
+            priceColumn?.type shouldBe "numeric(10,2)"
+
+            // Test rollback
+            migrateManagement.rollbackWithManagement(modifyDataTypeChangeSet)
+
+            // Verify the column type was reverted
+            val columnsAfterRollback = postgresqlInfoDao.getColumnDetails("products")
+            val priceColumnAfterRollback = columnsAfterRollback.find { it.columnName == "price" }
+            priceColumnAfterRollback?.type shouldBe "integer"
+        }
+
+        test("can modify column to varchar with different length") {
+            // First create a table with a varchar column
+            val createTable = CreateTable(
+                tableName = "articles",
+                columns = listOf(
+                    Column(
+                        name = "id",
+                        type = "integer",
+                        columnConstraint = ColumnConstraint(primaryKey = true, nullable = false)
+                    ),
+                    Column(
+                        name = "title",
+                        type = "character varying(100)",
+                        columnConstraint = ColumnConstraint(nullable = false)
+                    )
+                )
+            )
+
+            val createTableChangeSet = ChangeSet(
+                filename = "create_articles_table",
+                author = "author",
+                changeSetId = "create_articles_table",
+                changes = listOf(createTable),
+            )
+
+            migrateManagement.forwardWithManagement(createTableChangeSet)
+
+            // Then modify the column length
+            val modifyDataType = ModifyDataType(
+                tableName = "articles",
+                columnName = "title",
+                newDataType = "character varying(255)",
+                oldDataType = "character varying(100)"
+            )
+
+            val modifyDataTypeChangeSet = ChangeSet(
+                filename = "modify_title_length",
+                author = "author",
+                changeSetId = "modify_title_length",
+                changes = listOf(modifyDataType),
+            )
+
+            migrateManagement.forwardWithManagement(modifyDataTypeChangeSet)
+
+            // Verify the column type was changed
+            val postgresqlInfoDao = PostgresqlInfoDao(db)
+            val columnDetails = postgresqlInfoDao.getColumnDetails("articles")
+            val titleColumn = columnDetails.find { it.columnName == "title" }
+            titleColumn?.type shouldBe "character varying(255)"
+
+            // Test rollback
+            migrateManagement.rollbackWithManagement(modifyDataTypeChangeSet)
+
+            // Verify the column type was reverted
+            val columnsAfterRollback = postgresqlInfoDao.getColumnDetails("articles")
+            val titleColumnAfterRollback = columnsAfterRollback.find { it.columnName == "title" }
+            titleColumnAfterRollback?.type shouldBe "character varying(100)"
+        }
+    }
 })

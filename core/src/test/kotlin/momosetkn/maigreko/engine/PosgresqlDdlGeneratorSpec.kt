@@ -9,6 +9,7 @@ import momosetkn.maigreko.core.Column
 import momosetkn.maigreko.core.ColumnConstraint
 import momosetkn.maigreko.core.CreateTable
 import momosetkn.maigreko.core.ForeignKeyAction
+import momosetkn.maigreko.core.ModifyDataType
 import momosetkn.maigreko.core.RenameColumn
 import momosetkn.maigreko.core.RenameTable
 
@@ -402,6 +403,56 @@ class PosgresqlDdlGeneratorSpec : FunSpec({
 
             ddl shouldBe """
                 drop index idx_users_username
+            """.trimIndent()
+        }
+    }
+    
+    context("modifyDataType") {
+        test("modify column data type") {
+            val modifyDataType = ModifyDataType(
+                tableName = "users",
+                columnName = "age",
+                newDataType = "integer",
+                oldDataType = "smallint"
+            )
+
+            val ddl = subject.modifyDataType(modifyDataType)
+
+            ddl shouldBe """
+                alter table users
+                alter column age type integer
+            """.trimIndent()
+        }
+        
+        test("modify column to varchar with length") {
+            val modifyDataType = ModifyDataType(
+                tableName = "products",
+                columnName = "description",
+                newDataType = "character varying(500)",
+                oldDataType = "character varying(255)"
+            )
+
+            val ddl = subject.modifyDataType(modifyDataType)
+
+            ddl shouldBe """
+                alter table products
+                alter column description type character varying(500)
+            """.trimIndent()
+        }
+        
+        test("modify column to more complex type") {
+            val modifyDataType = ModifyDataType(
+                tableName = "orders",
+                columnName = "status",
+                newDataType = "order_status_enum",
+                oldDataType = "character varying(20)"
+            )
+
+            val ddl = subject.modifyDataType(modifyDataType)
+
+            ddl shouldBe """
+                alter table orders
+                alter column status type order_status_enum
             """.trimIndent()
         }
     }

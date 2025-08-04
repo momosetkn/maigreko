@@ -4,6 +4,7 @@ import momosetkn.maigreko.core.AddColumn
 import momosetkn.maigreko.core.AddForeignKey
 import momosetkn.maigreko.core.AddIndex
 import momosetkn.maigreko.core.CreateTable
+import momosetkn.maigreko.core.ModifyDataType
 import momosetkn.maigreko.core.RenameColumn
 import momosetkn.maigreko.core.RenameTable
 
@@ -28,6 +29,18 @@ interface DDLGenerator {
     fun addIndex(addIndex: AddIndex): String
 
     fun dropIndex(addIndex: AddIndex): String
+
+    fun modifyDataType(modifyDataType: ModifyDataType): String
+
+    fun reverseModifyDataType(modifyDataType: ModifyDataType): String {
+        val reverseModifyDataType = ModifyDataType(
+            tableName = modifyDataType.tableName,
+            columnName = modifyDataType.columnName,
+            newDataType = modifyDataType.oldDataType,
+            oldDataType = modifyDataType.newDataType
+        )
+        return modifyDataType(reverseModifyDataType)
+    }
 
     fun reverseRenameTable(renameTable: RenameTable): String {
         val reverseRenameTable = renameTable.copy(

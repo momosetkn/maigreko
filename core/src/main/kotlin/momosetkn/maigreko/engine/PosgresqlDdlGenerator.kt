@@ -6,4 +6,5 @@ class PosgresqlDdlGenerator :
     PosgresqlAddColumnDdlGenerator,
     PosgresqlAddKeyDdlGenerator,
     PosgresqlRenameDdlGenerator,
-    PosgresqlDropDdlGenerator
+    PosgresqlDropDdlGenerator,
+    PosgresqlModifyDataTypeDdlGenerator

@@ -5,35 +5,38 @@ import momosetkn.maigreko.core.AddForeignKey
 import momosetkn.maigreko.core.AddIndex
 import momosetkn.maigreko.core.Change
 import momosetkn.maigreko.core.CreateTable
+import momosetkn.maigreko.core.ModifyDataType
 import momosetkn.maigreko.core.RenameColumn
 import momosetkn.maigreko.core.RenameTable
 
 open class MigrateEngine(
-    open val forwardMigrateEngine: DDLGenerator,
+    open val ddlGenerator: DDLGenerator,
 ) {
     fun forwardDdl(change: Change): String {
         return when (change) {
-            is CreateTable -> forwardMigrateEngine.createTable(change)
-            is AddForeignKey -> forwardMigrateEngine.addForeignKey(change)
-            is AddColumn -> forwardMigrateEngine.addColumn(change)
-            is RenameTable -> forwardMigrateEngine.renameTable(change)
-            is RenameColumn -> forwardMigrateEngine.renameColumn(change)
-            is AddIndex -> forwardMigrateEngine.addIndex(change)
+            is CreateTable -> ddlGenerator.createTable(change)
+            is AddForeignKey -> ddlGenerator.addForeignKey(change)
+            is AddColumn -> ddlGenerator.addColumn(change)
+            is RenameTable -> ddlGenerator.renameTable(change)
+            is RenameColumn -> ddlGenerator.renameColumn(change)
+            is AddIndex -> ddlGenerator.addIndex(change)
+            is ModifyDataType -> ddlGenerator.modifyDataType(change)
         }
     }
 
     fun rollbackDdl(change: Change): String {
         return when (change) {
-            is CreateTable -> forwardMigrateEngine.dropTable(change)
-            is AddForeignKey -> forwardMigrateEngine.dropForeignKey(change)
-            is AddColumn -> forwardMigrateEngine.dropColumn(change)
-            is RenameTable -> forwardMigrateEngine.reverseRenameTable(change)
-            is RenameColumn -> forwardMigrateEngine.reverseRenameColumn(change)
-            is AddIndex -> forwardMigrateEngine.dropIndex(change)
+            is CreateTable -> ddlGenerator.dropTable(change)
+            is AddForeignKey -> ddlGenerator.dropForeignKey(change)
+            is AddColumn -> ddlGenerator.dropColumn(change)
+            is RenameTable -> ddlGenerator.reverseRenameTable(change)
+            is RenameColumn -> ddlGenerator.reverseRenameColumn(change)
+            is AddIndex -> ddlGenerator.dropIndex(change)
+            is ModifyDataType -> ddlGenerator.reverseModifyDataType(change)
         }
     }
 }
 
 class PostgreMigrateEngine(
-    override val forwardMigrateEngine: DDLGenerator = PosgresqlDdlGenerator(),
-) : MigrateEngine(forwardMigrateEngine)
+    override val ddlGenerator: DDLGenerator = PosgresqlDdlGenerator(),
+) : MigrateEngine(ddlGenerator)
