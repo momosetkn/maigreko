@@ -9,7 +9,6 @@ import momosetkn.maigreko.core.RenameTable
 
 open class MigrateEngine(
     open val forwardMigrateEngine: DDLGenerator,
-    open val rollbackMigrateEngine: DDLGenerator,
 ) {
     fun forwardDdl(change: Change): String {
         return when (change) {
@@ -23,16 +22,15 @@ open class MigrateEngine(
 
     fun rollbackDdl(change: Change): String {
         return when (change) {
-            is CreateTable -> rollbackMigrateEngine.createTable(change)
-            is AddForeignKey -> rollbackMigrateEngine.addForeignKey(change)
-            is AddColumn -> rollbackMigrateEngine.addColumn(change)
-            is RenameTable -> rollbackMigrateEngine.renameTable(change)
-            is RenameColumn -> rollbackMigrateEngine.renameColumn(change)
+            is CreateTable -> forwardMigrateEngine.dropTable(change)
+            is AddForeignKey -> forwardMigrateEngine.dropForeignKey(change)
+            is AddColumn -> forwardMigrateEngine.dropColumn(change)
+            is RenameTable -> forwardMigrateEngine.reverseRenameTable(change)
+            is RenameColumn -> forwardMigrateEngine.reverseRenameColumn(change)
         }
     }
 }
 
 class PostgreMigrateEngine(
-    override val forwardMigrateEngine: DDLGenerator = PosgresqlForwardDdlGenerator(),
-    override val rollbackMigrateEngine: DDLGenerator = PosgresqlRollbackDdlGenerator(),
-) : MigrateEngine(forwardMigrateEngine, rollbackMigrateEngine)
+    override val forwardMigrateEngine: DDLGenerator = PosgresqlDdlGenerator(),
+) : MigrateEngine(forwardMigrateEngine)

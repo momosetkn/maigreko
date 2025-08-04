@@ -11,8 +11,8 @@ import momosetkn.maigreko.core.ForeignKeyAction
 import momosetkn.maigreko.core.RenameColumn
 import momosetkn.maigreko.core.RenameTable
 
-class PosgresqlForwardDdlGeneratorSpec : FunSpec({
-    val subject = PosgresqlForwardDdlGenerator()
+class PosgresqlDdlGeneratorSpec : FunSpec({
+    val subject = PosgresqlDdlGenerator()
 
     context("createTable") {
         context("primaryKey = true, nullable = false") {
