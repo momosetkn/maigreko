@@ -1,8 +1,13 @@
 package momosetkn.maigreko.engine
 
+import momosetkn.maigreko.core.AddColumn
+import momosetkn.maigreko.core.AddForeignKey
 import momosetkn.maigreko.core.Column
 import momosetkn.maigreko.core.ColumnConstraint
 import momosetkn.maigreko.core.CreateTable
+import momosetkn.maigreko.core.ForeignKeyAction
+import momosetkn.maigreko.core.RenameColumn
+import momosetkn.maigreko.core.RenameTable
 import momosetkn.maigreko.engine.StringUtils.collapseSpaces
 
 class PosgresqlForwardDdlGenerator : DDLGenerator {
@@ -24,13 +29,84 @@ class PosgresqlForwardDdlGenerator : DDLGenerator {
             """.trimIndent().collapseSpaces()
     }
 
+    override fun addForeignKey(addForeignKey: AddForeignKey): String {
+        val columnNames = addForeignKey.columnNames.joinToString(", ")
+        val referencedColumnNames = addForeignKey.referencedColumnNames.joinToString(", ")
+
+        val onDelete = addForeignKey.onDelete?.let {
+            "on delete ${formatForeignKeyAction(it)}"
+        } ?: ""
+
+        val onUpdate = addForeignKey.onUpdate?.let {
+            "on update ${formatForeignKeyAction(it)}"
+        } ?: ""
+
+        val deferrable = if (addForeignKey.deferrable) {
+            "deferrable" + if (addForeignKey.initiallyDeferred) " initially deferred" else ""
+        } else {
+            ""
+        }
+
+        return """
+            alter table ${addForeignKey.tableName}
+            add constraint ${addForeignKey.constraintName} 
+            foreign key ($columnNames) 
+            references ${addForeignKey.referencedTableName} ($referencedColumnNames)
+            $onDelete $onUpdate $deferrable
+            """.trimIndent().collapseSpaces()
+    }
+
+    override fun addColumn(addColumn: AddColumn): String {
+        val column = addColumn.column
+        val columnDefinition = listOfNotNull(
+            nameWithType(column),
+            defaultValueWithAutoIncrement(column),
+            column.columnConstraint?.let(::constraint),
+        ).joinToString(" ")
+
+        val position = when {
+            addColumn.afterColumn != null -> "AFTER ${addColumn.afterColumn}"
+            addColumn.beforeColumn != null -> "BEFORE ${addColumn.beforeColumn}"
+            else -> ""
+        }
+
+        return """
+            alter table ${addColumn.tableName}
+            add column $columnDefinition $position
+            """.trimIndent().collapseSpaces()
+    }
+
+    override fun renameTable(renameTable: RenameTable): String {
+        return """
+            alter table ${renameTable.oldTableName}
+            rename to ${renameTable.newTableName}
+            """.trimIndent().collapseSpaces()
+    }
+
+    override fun renameColumn(renameColumn: RenameColumn): String {
+        return """
+            alter table ${renameColumn.tableName}
+            rename column ${renameColumn.oldColumnName} to ${renameColumn.newColumnName}
+            """.trimIndent().collapseSpaces()
+    }
+
+    private fun formatForeignKeyAction(action: ForeignKeyAction): String {
+        return when (action) {
+            ForeignKeyAction.CASCADE -> "cascade"
+            ForeignKeyAction.SET_NULL -> "set null"
+            ForeignKeyAction.SET_DEFAULT -> "set default"
+            ForeignKeyAction.RESTRICT -> "restrict"
+            ForeignKeyAction.NO_ACTION -> "no action"
+        }
+    }
+
     private fun constraint(columnConstraint: ColumnConstraint): String {
         return when {
             columnConstraint.primaryKey -> "primary key"
             else -> {
                 listOfNotNull(
                     if (columnConstraint.unique) "unique" else null,
-                    if (columnConstraint.nullable) "not null" else null,
+                    if (columnConstraint.nullable) null else "not null",
                 ).joinToString(" ")
             }
         }

@@ -28,8 +28,7 @@ class PostgresqlInfoDao(
                     JOIN pg_attribute f_col ON f_col.attnum = ANY(con.confkey) AND f_col.attrelid = con.confrelid
                     WHERE
                         tbl.relname = /*tableName*/'tableName'
-                        AND con.contype = 'f'
-                        AND tbl.relname = 'orders';
+                        AND con.contype = 'f';
                 """.trimIndent()
             )
                 .bind("tableName", tableName)

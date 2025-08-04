@@ -8,6 +8,44 @@ data class CreateTable(
     val columns: List<Column>,
 ) : Change
 
+data class AddForeignKey(
+    val constraintName: String,
+    val tableName: String,
+    val columnNames: List<String>,
+    val referencedTableName: String,
+    val referencedColumnNames: List<String>,
+    val onDelete: ForeignKeyAction? = null,
+    val onUpdate: ForeignKeyAction? = null,
+    val deferrable: Boolean = false,
+    val initiallyDeferred: Boolean = false,
+) : Change
+
+data class AddColumn(
+    val tableName: String,
+    val column: Column,
+    val afterColumn: String? = null,
+    val beforeColumn: String? = null,
+) : Change
+
+data class RenameTable(
+    val oldTableName: String,
+    val newTableName: String,
+) : Change
+
+data class RenameColumn(
+    val tableName: String,
+    val oldColumnName: String,
+    val newColumnName: String,
+) : Change
+
+enum class ForeignKeyAction {
+    CASCADE,
+    SET_NULL,
+    SET_DEFAULT,
+    RESTRICT,
+    NO_ACTION
+}
+
 data class Column(
     val name: String,
     val type: String,
