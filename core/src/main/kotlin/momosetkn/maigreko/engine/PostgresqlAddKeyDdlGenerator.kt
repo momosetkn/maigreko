@@ -5,7 +5,7 @@ import momosetkn.maigreko.core.AddIndex
 import momosetkn.maigreko.core.ForeignKeyAction
 import momosetkn.maigreko.engine.StringUtils.normalizeText
 
-interface PosgresqlAddKeyDdlGenerator : DDLGenerator {
+interface PostgresqlAddKeyDdlGenerator : DDLGenerator {
     override fun addForeignKey(addForeignKey: AddForeignKey): String {
         val columnNames = addForeignKey.columnNames.joinToString(", ")
         val referencedColumnNames = addForeignKey.referencedColumnNames.joinToString(", ")

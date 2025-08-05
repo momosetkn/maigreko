@@ -1,17 +1,10 @@
 package momosetkn.maigreko.engine
 
-import momosetkn.maigreko.core.AddColumn
-import momosetkn.maigreko.core.AddForeignKey
-import momosetkn.maigreko.core.Column
-import momosetkn.maigreko.core.ColumnConstraint
-import momosetkn.maigreko.core.CreateTable
-import momosetkn.maigreko.core.ForeignKeyAction
 import momosetkn.maigreko.core.RenameColumn
 import momosetkn.maigreko.core.RenameTable
-import momosetkn.maigreko.engine.StringUtils.collapseSpaces
 import momosetkn.maigreko.engine.StringUtils.normalizeText
 
-interface PosgresqlRenameDdlGenerator : DDLGenerator {
+interface PostgresqlRenameDdlGenerator : DDLGenerator {
     override fun renameTable(renameTable: RenameTable): String {
         return """
             |alter table ${renameTable.oldTableName}

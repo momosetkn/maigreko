@@ -1,32 +1,26 @@
 package momosetkn.maigreko.engine
 
 import momosetkn.maigreko.core.AddColumn
-import momosetkn.maigreko.core.AddForeignKey
 import momosetkn.maigreko.core.Column
 import momosetkn.maigreko.core.ColumnConstraint
-import momosetkn.maigreko.core.CreateTable
-import momosetkn.maigreko.core.ForeignKeyAction
-import momosetkn.maigreko.core.RenameColumn
-import momosetkn.maigreko.core.RenameTable
-import momosetkn.maigreko.engine.StringUtils.collapseSpaces
 import momosetkn.maigreko.engine.StringUtils.normalizeText
 
-interface PosgresqlCreateTableDdlGenerator : DDLGenerator {
-    override fun createTable(
-        createTable: CreateTable,
-    ): String {
-        val ifNotExists = if (createTable.ifNotExists) "if not exists" else ""
-        val columns = createTable.columns.joinToString(",\n") {
-            listOfNotNull(
-                nameWithType(it),
-                defaultValueWithAutoIncrement(it),
-                it.columnConstraint?.let(::constraint),
-            ).joinToString(" ")
+interface PostgresqlAddColumnDdlGenerator : DDLGenerator {
+    override fun addColumn(addColumn: AddColumn): String {
+        require(addColumn.afterColumn == null && addColumn.beforeColumn == null) {
+            "PostgreSQL does not support AFTER or BEFORE clauses in ADD COLUMN statements"
         }
+
+        val column = addColumn.column
+        val columnDefinition = listOfNotNull(
+            nameWithType(column),
+            defaultValueWithAutoIncrement(column),
+            column.columnConstraint?.let(::constraint),
+        ).joinToString(" ")
+
         return """
-                |create table $ifNotExists ${createTable.tableName} (
-                |$columns
-                |)
+            |alter table ${addColumn.tableName}
+            |add column $columnDefinition
             """.trimMargin().normalizeText()
     }
 

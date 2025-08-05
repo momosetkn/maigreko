@@ -3,7 +3,7 @@ package momosetkn.maigreko.engine
 import momosetkn.maigreko.core.AddNotNullConstraint
 import momosetkn.maigreko.engine.StringUtils.normalizeText
 
-interface PosgresqlNotNullConstraintDdlGenerator : DDLGenerator {
+interface PostgresqlNotNullConstraintDdlGenerator : DDLGenerator {
     override fun addNotNullConstraint(addNotNullConstraint: AddNotNullConstraint): String {
         val alterColumn = "ALTER COLUMN ${addNotNullConstraint.columnName}"
         val defaultClause = addNotNullConstraint.defaultValue?.let {

@@ -41,5 +41,5 @@ open class MigrateEngine(
 }
 
 class PostgreMigrateEngine(
-    override val ddlGenerator: DDLGenerator = PosgresqlDdlGenerator(),
+    override val ddlGenerator: DDLGenerator = PostgresqlDdlGenerator(),
 ) : MigrateEngine(ddlGenerator)

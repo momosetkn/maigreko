@@ -6,7 +6,7 @@ import momosetkn.maigreko.core.AddIndex
 import momosetkn.maigreko.core.CreateTable
 import momosetkn.maigreko.engine.StringUtils.collapseSpaces
 
-interface PosgresqlDropDdlGenerator : DDLGenerator {
+interface PostgresqlDropDdlGenerator : DDLGenerator {
     override fun dropTable(createTable: CreateTable): String {
         return """
                 drop table ${createTable.tableName}

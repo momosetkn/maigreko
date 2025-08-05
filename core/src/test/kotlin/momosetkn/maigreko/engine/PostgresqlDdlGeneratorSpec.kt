@@ -14,8 +14,8 @@ import momosetkn.maigreko.core.ModifyDataType
 import momosetkn.maigreko.core.RenameColumn
 import momosetkn.maigreko.core.RenameTable
 
-class PosgresqlDdlGeneratorSpec : FunSpec({
-    val subject = PosgresqlDdlGenerator()
+class PostgresqlDdlGeneratorSpec : FunSpec({
+    val subject = PostgresqlDdlGenerator()
 
     context("createTable") {
         context("primaryKey = true, nullable = false") {
