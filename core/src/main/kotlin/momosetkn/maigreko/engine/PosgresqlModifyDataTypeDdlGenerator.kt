@@ -8,6 +8,6 @@ interface PosgresqlModifyDataTypeDdlGenerator : DDLGenerator {
         return """
             alter table ${modifyDataType.tableName}
             alter column ${modifyDataType.columnName} type ${modifyDataType.newDataType}
-        """.trimIndent().collapseSpaces()
+            """.trimIndent().collapseSpaces()
     }
 }

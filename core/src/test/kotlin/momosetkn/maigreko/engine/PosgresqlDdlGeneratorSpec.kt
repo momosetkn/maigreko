@@ -5,6 +5,7 @@ import io.kotest.matchers.shouldBe
 import momosetkn.maigreko.core.AddColumn
 import momosetkn.maigreko.core.AddForeignKey
 import momosetkn.maigreko.core.AddIndex
+import momosetkn.maigreko.core.AddNotNullConstraint
 import momosetkn.maigreko.core.Column
 import momosetkn.maigreko.core.ColumnConstraint
 import momosetkn.maigreko.core.CreateTable
@@ -406,7 +407,7 @@ class PosgresqlDdlGeneratorSpec : FunSpec({
             """.trimIndent()
         }
     }
-    
+
     context("modifyDataType") {
         test("modify column data type") {
             val modifyDataType = ModifyDataType(
@@ -423,7 +424,7 @@ class PosgresqlDdlGeneratorSpec : FunSpec({
                 alter column age type integer
             """.trimIndent()
         }
-        
+
         test("modify column to varchar with length") {
             val modifyDataType = ModifyDataType(
                 tableName = "products",
@@ -439,7 +440,7 @@ class PosgresqlDdlGeneratorSpec : FunSpec({
                 alter column description type character varying(500)
             """.trimIndent()
         }
-        
+
         test("modify column to more complex type") {
             val modifyDataType = ModifyDataType(
                 tableName = "orders",
@@ -453,6 +454,57 @@ class PosgresqlDdlGeneratorSpec : FunSpec({
             ddl shouldBe """
                 alter table orders
                 alter column status type order_status_enum
+            """.trimIndent()
+        }
+    }
+
+    context("addNotNullConstraint") {
+        test("add not null constraint without default value") {
+            val addNotNullConstraint = AddNotNullConstraint(
+                tableName = "users",
+                columnName = "email",
+                columnDataType = "character varying(255)"
+            )
+
+            val ddl = subject.addNotNullConstraint(addNotNullConstraint)
+
+            ddl shouldBe """
+                ALTER TABLE users
+                ALTER COLUMN email SET NOT NULL
+            """.trimIndent()
+        }
+
+        test("add not null constraint with default value") {
+            val addNotNullConstraint = AddNotNullConstraint(
+                tableName = "products",
+                columnName = "is_active",
+                columnDataType = "boolean",
+                defaultValue = "true"
+            )
+
+            val ddl = subject.addNotNullConstraint(addNotNullConstraint)
+
+            ddl shouldBe """
+                ALTER TABLE products
+                ALTER COLUMN is_active SET DEFAULT true,
+                ALTER COLUMN is_active SET NOT NULL
+            """.trimIndent()
+        }
+    }
+
+    context("dropNotNullConstraint") {
+        test("drop not null constraint") {
+            val addNotNullConstraint = AddNotNullConstraint(
+                tableName = "users",
+                columnName = "email",
+                columnDataType = "character varying(255)"
+            )
+
+            val ddl = subject.dropNotNullConstraint(addNotNullConstraint)
+
+            ddl shouldBe """
+                ALTER TABLE users
+                ALTER COLUMN email DROP NOT NULL
             """.trimIndent()
         }
     }

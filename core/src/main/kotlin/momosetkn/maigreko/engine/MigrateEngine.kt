@@ -3,6 +3,7 @@ package momosetkn.maigreko.engine
 import momosetkn.maigreko.core.AddColumn
 import momosetkn.maigreko.core.AddForeignKey
 import momosetkn.maigreko.core.AddIndex
+import momosetkn.maigreko.core.AddNotNullConstraint
 import momosetkn.maigreko.core.Change
 import momosetkn.maigreko.core.CreateTable
 import momosetkn.maigreko.core.ModifyDataType
@@ -21,6 +22,7 @@ open class MigrateEngine(
             is RenameColumn -> ddlGenerator.renameColumn(change)
             is AddIndex -> ddlGenerator.addIndex(change)
             is ModifyDataType -> ddlGenerator.modifyDataType(change)
+            is AddNotNullConstraint -> ddlGenerator.addNotNullConstraint(change)
         }
     }
 
@@ -33,6 +35,7 @@ open class MigrateEngine(
             is RenameColumn -> ddlGenerator.reverseRenameColumn(change)
             is AddIndex -> ddlGenerator.dropIndex(change)
             is ModifyDataType -> ddlGenerator.reverseModifyDataType(change)
+            is AddNotNullConstraint -> ddlGenerator.dropNotNullConstraint(change)
         }
     }
 }

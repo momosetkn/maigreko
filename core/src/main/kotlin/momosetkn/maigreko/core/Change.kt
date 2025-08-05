@@ -52,6 +52,13 @@ data class ModifyDataType(
     val oldDataType: String? = null, // require to rollback
 ) : Change
 
+data class AddNotNullConstraint(
+    val tableName: String,
+    val columnName: String,
+    val columnDataType: String,
+    val defaultValue: Any? = null,
+) : Change
+
 enum class ForeignKeyAction {
     CASCADE,
     SET_NULL,

@@ -49,6 +49,7 @@ class PostgresqlInfoDao(
                             c.data_type,
                             c.character_maximum_length,
                             c.numeric_precision,
+                            c.numeric_scale,
                             c.is_nullable,
                             c.column_default
                         FROM information_schema.columns c
@@ -89,7 +90,14 @@ class PostgresqlInfoDao(
                     SELECT
                         t.column_name,
                         t.data_type ||
-                        COALESCE('(' || t.character_maximum_length || ')', '') AS type,
+                            CASE
+                              WHEN t.data_type = 'character varying' THEN
+                                '(' || t.character_maximum_length || ')'
+                              WHEN t.data_type = 'numeric' THEN
+                                '(' || t.numeric_precision || ',' || COALESCE(t.numeric_scale, 0) || ')'
+                              ELSE ''
+                            END
+                            AS type,
                         CASE t.is_nullable WHEN 'NO' THEN 'YES' ELSE 'NO' END AS not_null,
                         t.column_default,
                         CASE WHEN p.column_name IS NOT NULL THEN 'YES' ELSE 'NO' END AS primary_key,

@@ -606,4 +606,136 @@ class MigrateManagementIntegrationSpec : FunSpec({
             titleColumnAfterRollback?.type shouldBe "character varying(100)"
         }
     }
+
+    context("add not null constraint") {
+        test("can add not null constraint") {
+            // First create a table with a nullable column
+            val createTable = CreateTable(
+                tableName = "contacts",
+                columns = listOf(
+                    Column(
+                        name = "id",
+                        type = "integer",
+                        columnConstraint = ColumnConstraint(primaryKey = true, nullable = false)
+                    ),
+                    Column(
+                        name = "email",
+                        type = "character varying(255)",
+                        columnConstraint = ColumnConstraint(nullable = true)
+                    )
+                )
+            )
+
+            val createTableChangeSet = ChangeSet(
+                filename = "create_contacts_table",
+                author = "author",
+                changeSetId = "create_contacts_table",
+                changes = listOf(createTable),
+            )
+
+            migrateManagement.forwardWithManagement(createTableChangeSet)
+
+            // Verify the initial column is nullable
+            val postgresqlInfoDao = PostgresqlInfoDao(db)
+            val initialColumnDetails = postgresqlInfoDao.getColumnDetails("contacts")
+            val initialEmailColumn = initialColumnDetails.find { it.columnName == "email" }
+            initialEmailColumn?.notNull shouldBe "NO"
+
+            // Then add not null constraint
+            val addNotNullConstraint = AddNotNullConstraint(
+                tableName = "contacts",
+                columnName = "email",
+                columnDataType = "character varying(255)"
+            )
+
+            val addNotNullConstraintChangeSet = ChangeSet(
+                filename = "add_not_null_to_email",
+                author = "author",
+                changeSetId = "add_not_null_to_email",
+                changes = listOf(addNotNullConstraint),
+            )
+
+            migrateManagement.forwardWithManagement(addNotNullConstraintChangeSet)
+
+            // Verify the column is now not null
+            val columnDetails = postgresqlInfoDao.getColumnDetails("contacts")
+            val emailColumn = columnDetails.find { it.columnName == "email" }
+            emailColumn?.notNull shouldBe "YES"
+
+            // Test rollback
+            migrateManagement.rollbackWithManagement(addNotNullConstraintChangeSet)
+
+            // Verify the column is nullable again
+            val columnsAfterRollback = postgresqlInfoDao.getColumnDetails("contacts")
+            val emailColumnAfterRollback = columnsAfterRollback.find { it.columnName == "email" }
+            emailColumnAfterRollback?.notNull shouldBe "NO"
+        }
+
+        test("can add not null constraint with default value") {
+            // First create a table with a nullable column
+            val createTable = CreateTable(
+                tableName = "products",
+                columns = listOf(
+                    Column(
+                        name = "id",
+                        type = "integer",
+                        columnConstraint = ColumnConstraint(primaryKey = true, nullable = false)
+                    ),
+                    Column(
+                        name = "is_active",
+                        type = "boolean",
+                        columnConstraint = ColumnConstraint(nullable = true)
+                    )
+                )
+            )
+
+            val createTableChangeSet = ChangeSet(
+                filename = "create_products_table",
+                author = "author",
+                changeSetId = "create_products_table",
+                changes = listOf(createTable),
+            )
+
+            migrateManagement.forwardWithManagement(createTableChangeSet)
+
+            // Verify the initial column is nullable and has no default
+            val postgresqlInfoDao = PostgresqlInfoDao(db)
+            val initialColumnDetails = postgresqlInfoDao.getColumnDetails("products")
+            val initialIsActiveColumn = initialColumnDetails.find { it.columnName == "is_active" }
+            initialIsActiveColumn?.notNull shouldBe "NO"
+            initialIsActiveColumn?.columnDefault shouldBe null
+
+            // Then add not null constraint with default
+            val addNotNullConstraint = AddNotNullConstraint(
+                tableName = "products",
+                columnName = "is_active",
+                columnDataType = "boolean",
+                defaultValue = "true"
+            )
+
+            val addNotNullConstraintChangeSet = ChangeSet(
+                filename = "add_not_null_to_is_active",
+                author = "author",
+                changeSetId = "add_not_null_to_is_active",
+                changes = listOf(addNotNullConstraint),
+            )
+
+            migrateManagement.forwardWithManagement(addNotNullConstraintChangeSet)
+
+            // Verify the column is now not null and has default
+            val columnDetails = postgresqlInfoDao.getColumnDetails("products")
+            val isActiveColumn = columnDetails.find { it.columnName == "is_active" }
+            isActiveColumn?.notNull shouldBe "YES"
+            isActiveColumn?.columnDefault shouldBe "true"
+
+            // Test rollback
+            migrateManagement.rollbackWithManagement(addNotNullConstraintChangeSet)
+
+            // Verify the column is nullable again but default remains
+            // (PostgreSQL doesn't drop default when dropping NOT NULL constraint)
+            val columnsAfterRollback = postgresqlInfoDao.getColumnDetails("products")
+            val isActiveColumnAfterRollback = columnsAfterRollback.find { it.columnName == "is_active" }
+            isActiveColumnAfterRollback?.notNull shouldBe "NO"
+        }
+    }
 })
