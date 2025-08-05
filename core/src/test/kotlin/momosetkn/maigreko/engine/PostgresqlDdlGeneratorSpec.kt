@@ -6,6 +6,7 @@ import momosetkn.maigreko.core.AddColumn
 import momosetkn.maigreko.core.AddForeignKey
 import momosetkn.maigreko.core.AddIndex
 import momosetkn.maigreko.core.AddNotNullConstraint
+import momosetkn.maigreko.core.AddUniqueConstraint
 import momosetkn.maigreko.core.Column
 import momosetkn.maigreko.core.ColumnConstraint
 import momosetkn.maigreko.core.CreateTable
@@ -505,6 +506,57 @@ class PostgresqlDdlGeneratorSpec : FunSpec({
             ddl shouldBe """
                 ALTER TABLE users
                 ALTER COLUMN email DROP NOT NULL
+            """.trimIndent()
+        }
+    }
+
+    context("addUniqueConstraint") {
+        test("add unique constraint on single column") {
+            val addUniqueConstraint = AddUniqueConstraint(
+                constraintName = "uq_users_email",
+                tableName = "users",
+                columnNames = listOf("email")
+            )
+
+            val ddl = subject.addUniqueConstraint(addUniqueConstraint)
+
+            ddl shouldBe """
+                alter table users
+                add constraint uq_users_email
+                unique (email)
+            """.trimIndent()
+        }
+
+        test("add unique constraint on multiple columns") {
+            val addUniqueConstraint = AddUniqueConstraint(
+                constraintName = "uq_orders_user_product",
+                tableName = "orders",
+                columnNames = listOf("user_id", "product_id")
+            )
+
+            val ddl = subject.addUniqueConstraint(addUniqueConstraint)
+
+            ddl shouldBe """
+                alter table orders
+                add constraint uq_orders_user_product
+                unique (user_id, product_id)
+            """.trimIndent()
+        }
+    }
+
+    context("dropUniqueConstraint") {
+        test("drop unique constraint") {
+            val addUniqueConstraint = AddUniqueConstraint(
+                constraintName = "uq_users_email",
+                tableName = "users",
+                columnNames = listOf("email")
+            )
+
+            val ddl = subject.dropUniqueConstraint(addUniqueConstraint)
+
+            ddl shouldBe """
+                alter table users
+                drop constraint uq_users_email
             """.trimIndent()
         }
     }

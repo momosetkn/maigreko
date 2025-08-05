@@ -11,6 +11,7 @@ import org.komapper.jdbc.JdbcDatabase
 import org.komapper.jdbc.JdbcDialects
 import javax.sql.DataSource
 
+@Suppress("LargeClass")
 class MigrateManagementIntegrationSpec : FunSpec({
     lateinit var migrateManagement: MigrateManagement
     lateinit var dataSource: DataSource
@@ -94,6 +95,209 @@ class MigrateManagementIntegrationSpec : FunSpec({
             columnDetails.size shouldBe 0
             val constraintDetails = postgresqlInfoDao.getConstraintDetails("migrations")
             constraintDetails.size shouldBe 0
+        }
+    }
+
+    context("add unique constraint") {
+        test("can add unique constraint to a single column") {
+            // First create a table
+            val createTable = CreateTable(
+                tableName = "users",
+                columns = listOf(
+                    Column(
+                        name = "id",
+                        type = "integer",
+                        columnConstraint = ColumnConstraint(primaryKey = true, nullable = false)
+                    ),
+                    Column(
+                        name = "email",
+                        type = "character varying(255)",
+                        columnConstraint = ColumnConstraint(nullable = false)
+                    )
+                )
+            )
+
+            val createTableChangeSet = ChangeSet(
+                filename = "create_users_table.sql",
+                author = "test_author",
+                changeSetId = "create_users_table",
+                changes = listOf(createTable),
+            )
+
+            // Then add a unique constraint
+            val addUniqueConstraint = AddUniqueConstraint(
+                constraintName = "uq_users_email",
+                tableName = "users",
+                columnNames = listOf("email")
+            )
+
+            val addConstraintChangeSet = ChangeSet(
+                filename = "add_unique_constraint.sql",
+                author = "test_author",
+                changeSetId = "add_unique_constraint",
+                changes = listOf(addUniqueConstraint),
+            )
+
+            // Apply changes
+            migrateManagement.forwardWithManagement(createTableChangeSet)
+            migrateManagement.forwardWithManagement(addConstraintChangeSet)
+
+            // Verify
+            val postgresqlInfoDao = PostgresqlInfoDao(db)
+            val columnDetails = postgresqlInfoDao.getColumnDetails("users")
+
+            // Check that the email column has a unique constraint
+            val emailColumn = columnDetails.find { it.columnName == "email" }
+            emailColumn shouldBe PostgresqlColumnDetail(
+                columnName = "email",
+                type = "character varying(255)",
+                notNull = "YES",
+                columnDefault = null,
+                primaryKey = "NO",
+                unique = "YES",
+                foreignTable = null,
+                foreignColumn = null,
+            )
+        }
+
+        test("can add unique constraint to multiple columns") {
+            // First create a table
+            val createTable = CreateTable(
+                tableName = "orders",
+                columns = listOf(
+                    Column(
+                        name = "id",
+                        type = "integer",
+                        columnConstraint = ColumnConstraint(primaryKey = true, nullable = false)
+                    ),
+                    Column(
+                        name = "user_id",
+                        type = "integer",
+                        columnConstraint = ColumnConstraint(nullable = false)
+                    ),
+                    Column(
+                        name = "product_id",
+                        type = "integer",
+                        columnConstraint = ColumnConstraint(nullable = false)
+                    )
+                )
+            )
+
+            val createTableChangeSet = ChangeSet(
+                filename = "create_orders_table.sql",
+                author = "test_author",
+                changeSetId = "create_orders_table",
+                changes = listOf(createTable),
+            )
+
+            // Then add a unique constraint on multiple columns
+            val addUniqueConstraint = AddUniqueConstraint(
+                constraintName = "uq_orders_user_product",
+                tableName = "orders",
+                columnNames = listOf("user_id", "product_id")
+            )
+
+            val addConstraintChangeSet = ChangeSet(
+                filename = "add_unique_constraint.sql",
+                author = "test_author",
+                changeSetId = "add_unique_constraint",
+                changes = listOf(addUniqueConstraint),
+            )
+
+            // Apply changes
+            migrateManagement.forwardWithManagement(createTableChangeSet)
+            migrateManagement.forwardWithManagement(addConstraintChangeSet)
+
+            // Verify
+            val postgresqlInfoDao = PostgresqlInfoDao(db)
+            val columnDetails = postgresqlInfoDao.getColumnDetails("orders")
+
+            // For multi-column unique constraints, both columns should show as unique
+            val userIdColumn = columnDetails.find { it.columnName == "user_id" }
+            userIdColumn shouldBe PostgresqlColumnDetail(
+                columnName = "user_id",
+                type = "integer",
+                notNull = "YES",
+                columnDefault = null,
+                primaryKey = "NO",
+                unique = "YES",
+                foreignTable = null,
+                foreignColumn = null,
+            )
+
+            val productIdColumn = columnDetails.find { it.columnName == "product_id" }
+            productIdColumn shouldBe PostgresqlColumnDetail(
+                columnName = "product_id",
+                type = "integer",
+                notNull = "YES",
+                columnDefault = null,
+                primaryKey = "NO",
+                unique = "YES",
+                foreignTable = null,
+                foreignColumn = null,
+            )
+        }
+
+        test("can rollback unique constraint") {
+            // First create a table
+            val createTable = CreateTable(
+                tableName = "products",
+                columns = listOf(
+                    Column(
+                        name = "id",
+                        type = "integer",
+                        columnConstraint = ColumnConstraint(primaryKey = true, nullable = false)
+                    ),
+                    Column(
+                        name = "sku",
+                        type = "character varying(50)",
+                        columnConstraint = ColumnConstraint(nullable = false)
+                    )
+                )
+            )
+
+            val createTableChangeSet = ChangeSet(
+                filename = "create_products_table.sql",
+                author = "test_author",
+                changeSetId = "create_products_table",
+                changes = listOf(createTable),
+            )
+
+            // Then add a unique constraint
+            val addUniqueConstraint = AddUniqueConstraint(
+                constraintName = "uq_products_sku",
+                tableName = "products",
+                columnNames = listOf("sku")
+            )
+
+            val addConstraintChangeSet = ChangeSet(
+                filename = "add_unique_constraint.sql",
+                author = "test_author",
+                changeSetId = "add_unique_constraint",
+                changes = listOf(addUniqueConstraint),
+            )
+
+            // Apply changes and then rollback the constraint
+            migrateManagement.forwardWithManagement(createTableChangeSet)
+            migrateManagement.forwardWithManagement(addConstraintChangeSet)
+            migrateManagement.rollbackWithManagement(addConstraintChangeSet)
+
+            // Verify
+            val postgresqlInfoDao = PostgresqlInfoDao(db)
+            val columnDetails = postgresqlInfoDao.getColumnDetails("products")
+
+            // Check that the sku column no longer has a unique constraint
+            val skuColumn = columnDetails.find { it.columnName == "sku" }
+            skuColumn shouldBe PostgresqlColumnDetail(
+                columnName = "sku",
+                type = "character varying(50)",
+                notNull = "YES",
+                columnDefault = null,
+                primaryKey = "NO",
+                unique = "NO",
+                foreignTable = null,
+                foreignColumn = null,
+            )
         }
     }
 

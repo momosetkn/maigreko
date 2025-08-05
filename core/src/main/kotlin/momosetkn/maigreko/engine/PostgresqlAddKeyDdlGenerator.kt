@@ -2,6 +2,7 @@ package momosetkn.maigreko.engine
 
 import momosetkn.maigreko.core.AddForeignKey
 import momosetkn.maigreko.core.AddIndex
+import momosetkn.maigreko.core.AddUniqueConstraint
 import momosetkn.maigreko.core.ForeignKeyAction
 import momosetkn.maigreko.engine.StringUtils.normalizeText
 
@@ -50,6 +51,23 @@ interface PostgresqlAddKeyDdlGenerator : DDLGenerator {
         return """
             |create ${uniqueKeyword}index ${addIndex.indexName}
             |on ${addIndex.tableName} ($columnNames)
+            """.trimMargin().normalizeText()
+    }
+
+    override fun addUniqueConstraint(addUniqueConstraint: AddUniqueConstraint): String {
+        val columnNames = addUniqueConstraint.columnNames.joinToString(", ")
+
+        return """
+            |alter table ${addUniqueConstraint.tableName}
+            |add constraint ${addUniqueConstraint.constraintName}
+            |unique ($columnNames)
+            """.trimMargin().normalizeText()
+    }
+
+    override fun dropUniqueConstraint(addUniqueConstraint: AddUniqueConstraint): String {
+        return """
+            |alter table ${addUniqueConstraint.tableName}
+            |drop constraint ${addUniqueConstraint.constraintName}
             """.trimMargin().normalizeText()
     }
 }

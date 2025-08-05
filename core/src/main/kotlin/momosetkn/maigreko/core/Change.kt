@@ -59,6 +59,12 @@ data class AddNotNullConstraint(
     val defaultValue: Any? = null,
 ) : Change
 
+data class AddUniqueConstraint(
+    val constraintName: String,
+    val tableName: String,
+    val columnNames: List<String>,
+) : Change
+
 enum class ForeignKeyAction {
     CASCADE,
     SET_NULL,
