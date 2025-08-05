@@ -2,15 +2,17 @@ package momosetkn.maigreko.core
 
 import momosetkn.maigreko.core.infras.ChangeSetHistory
 import momosetkn.maigreko.core.infras.ChangeSetHistoryRepository
+import momosetkn.maigreko.core.infras.jdbc.JdbcDatabase
+import momosetkn.maigreko.core.infras.jdbc.JdbcQueryDsl
 import momosetkn.maigreko.engine.MigrateEngine
-import org.komapper.core.dsl.QueryDsl
-import org.komapper.jdbc.JdbcDatabase
+import javax.sql.DataSource
 
 class MigrateManagement(
-    private val db: JdbcDatabase,
+    private val dataSource: DataSource,
     private val migrateEngine: MigrateEngine,
 ) {
-    private val changeSetHistoryRepository = ChangeSetHistoryRepository(db)
+    private val db = JdbcDatabase(dataSource)
+    private val changeSetHistoryRepository = ChangeSetHistoryRepository(dataSource)
     private val migrateManagementBootstrap = MigrateManagementBootstrap(db, migrateEngine)
 
     fun forwardWithManagement(
@@ -29,7 +31,7 @@ class MigrateManagement(
                 if (existsHistory == null) {
                     changeSet.changes.forEach { change ->
                         val ddl = migrateEngine.forwardDdl(change)
-                        db.runQuery(QueryDsl.executeScript(ddl))
+                        db.runQuery(JdbcQueryDsl.executeScript(ddl))
                     }
                     val newHistory = changeSet.toMaigrekoChangelog()
                     changeSetHistoryRepository.save(newHistory)
@@ -54,7 +56,7 @@ class MigrateManagement(
                 if (existsHistory != null) {
                     changeSet.changes.forEach { change ->
                         val ddl = migrateEngine.rollbackDdl(change)
-                        db.runQuery(QueryDsl.executeScript(ddl))
+                        db.runQuery(JdbcQueryDsl.executeScript(ddl))
                     }
                     changeSetHistoryRepository.remove(existsHistory)
                 }

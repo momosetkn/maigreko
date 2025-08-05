@@ -1,8 +1,8 @@
 package momosetkn.maigreko.core
 
+import momosetkn.maigreko.core.infras.jdbc.JdbcDatabase
+import momosetkn.maigreko.core.infras.jdbc.JdbcQueryDsl
 import momosetkn.maigreko.engine.MigrateEngine
-import org.komapper.core.dsl.QueryDsl
-import org.komapper.jdbc.JdbcDatabase
 
 class MigrateManagementBootstrap(
     private val db: JdbcDatabase,
@@ -11,7 +11,7 @@ class MigrateManagementBootstrap(
     fun bootstrap() {
         val maigrekoCreateTable = createTable()
         val ddl = migrateEngine.forwardDdl(maigrekoCreateTable)
-        db.runQuery(QueryDsl.executeScript(ddl))
+        db.runQuery(JdbcQueryDsl.executeScript(ddl))
     }
 
     private fun createTable() =

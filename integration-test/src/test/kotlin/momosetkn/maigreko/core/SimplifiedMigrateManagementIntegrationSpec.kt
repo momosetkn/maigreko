@@ -7,10 +7,14 @@ import momosetkn.maigreko.core.infras.PostgresqlInfoRepository
 import momosetkn.maigreko.db.PostgresDataSource
 import momosetkn.maigreko.db.PostgresqlDatabase
 import momosetkn.maigreko.engine.PostgreMigrateEngine
+import javax.sql.DataSource
 
-class MigrateManagementSpec : FunSpec({
+/**
+ * Simplified version of MigrateManagementIntegrationSpec that uses the new JDBC implementations
+ */
+class SimplifiedMigrateManagementIntegrationSpec : FunSpec({
     lateinit var migrateManagement: MigrateManagement
-    lateinit var dataSource: javax.sql.DataSource
+    lateinit var dataSource: DataSource
     lateinit var jdbcInfoDao: PostgresqlInfoRepository
 
     beforeSpec {
@@ -23,6 +27,10 @@ class MigrateManagementSpec : FunSpec({
 
     beforeEach {
         PostgresqlDatabase.clear()
+    }
+
+    afterTest {
+        println(PostgresqlDatabase.generateDdl())
     }
 
     context("double forward") {
