@@ -17,6 +17,9 @@ allprojects {
     }
     tasks.test {
         useJUnitPlatform()
+        testLogging {
+            showStandardStreams = true
+        }
     }
 
 //    detekt {
