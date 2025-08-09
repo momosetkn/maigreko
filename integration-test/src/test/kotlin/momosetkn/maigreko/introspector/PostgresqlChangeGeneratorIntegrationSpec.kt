@@ -183,7 +183,6 @@ class PostgresqlChangeGeneratorIntegrationSpec : FunSpec({
             // Generate changes for all tables using the new multi-table method
             val allChanges = changeGenerator.generateChanges(
                 tableInfoss = tableInfoss,
-                sequenceDetails = sequenceDetails
             )
 
             // Store the original DDL for comparison
@@ -392,6 +391,8 @@ class PostgresqlChangeGeneratorIntegrationSpec : FunSpec({
             // Print the DDL for debugging
             println("Resulting DDL for complex schema test:")
             println(resultingDdl)
+
+            resultingDdl shouldBe originalDdl
 
             // Verify the DDL contains expected elements for all tables
             resultingDdl shouldContain "CREATE TABLE public.categories"

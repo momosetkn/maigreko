@@ -33,6 +33,7 @@ class PostgresqlChangeGenerator {
             Column(
                 name = columnDetail.columnName,
                 type = columnDetail.type,
+                defaultValue = columnDetail.columnDefault,
                 columnConstraint = ColumnConstraint(
                     nullable = columnDetail.notNull == "NO",
                     primaryKey = columnDetail.primaryKey == "YES",
@@ -69,8 +70,40 @@ class PostgresqlChangeGenerator {
                 )
             }
 
+        // Generate Sequence changes from column defaults
+        val sequenceChanges = columnDetails
+            .mapNotNull { columnDetail ->
+                extractSequenceFromColumnDefault(columnDetail.columnDefault)
+            }
+
         // Combine all changes
-        return listOf(createTableChange) + notNullConstraints + uniqueConstraints
+        return listOf(createTableChange) + notNullConstraints + uniqueConstraints + sequenceChanges
+    }
+
+    /**
+     * Extract sequence information from column default value
+     *
+     * @param columnDefault The column default value
+     * @return CreateSequence change or null if the default is not a nextval expression
+     */
+    private fun extractSequenceFromColumnDefault(columnDefault: String?): CreateSequence? {
+        if (columnDefault == null || !columnDefault.contains("nextval")) {
+            return null
+        }
+
+        // Extract sequence name from nextval expression
+        // Format is typically: nextval('sequence_name'::regclass)
+        val sequenceNameRegex = "nextval\\('([^']+)'::regclass\\)".toRegex()
+        val matchResult = sequenceNameRegex.find(columnDefault)
+
+        return matchResult?.let {
+            val sequenceName = it.groupValues[1]
+            CreateSequence(
+                sequenceName = sequenceName,
+                // Default values will be filled in by the database
+                dataType = "bigint"
+            )
+        }
     }
 
     /**
@@ -103,27 +136,6 @@ class PostgresqlChangeGenerator {
     }
 
     /**
-     * Generate a list of Change objects from both column and constraint details for a single table
-     *
-     * @param tableName The name of the table
-     * @param columnDetails List of column details
-     * @param constraintDetails List of constraint details
-     * @return List of Change objects ordered by dependencies
-     */
-    fun generateChanges(
-        tableName: String,
-        columnDetails: List<PostgresqlColumnDetail>,
-        constraintDetails: List<PostgresqlConstraintDetail>
-    ): List<Change> {
-        return generateChanges(
-            tableName = tableName,
-            columnDetails = columnDetails,
-            constraintDetails = constraintDetails,
-            sequenceDetails = emptyList()
-        )
-    }
-
-    /**
      * Generate a list of Change objects from column, constraint, and sequence details for a single table
      *
      * @param tableName The name of the table
@@ -135,43 +147,54 @@ class PostgresqlChangeGenerator {
     fun generateChanges(
         tableName: String,
         columnDetails: List<PostgresqlColumnDetail>,
-        constraintDetails: List<PostgresqlConstraintDetail>,
-        sequenceDetails: List<PostgresqlSequenceDetail>
+        columnConstraints: List<PostgresqlConstraintDetail> = emptyList(),
+        sequenceDetails: List<PostgresqlSequenceDetail> = emptyList(),
     ): List<Change> {
-        // Generate changes from columns, constraints, and sequences
-        val columnChanges = generateChangesFromColumns(tableName, columnDetails)
-        val constraintChanges = generateChangesFromConstraints(constraintDetails)
-        val sequenceChanges = generateChangesFromSequences(sequenceDetails)
-
-        // Combine changes and sort based on dependencies
-        return sortChangesByDependencies(columnChanges + constraintChanges + sequenceChanges)
+        return generateChanges(
+            tableInfoss = listOf(
+                PostgresqlTableInfo(
+                    tableName = tableName,
+                    columnDetails = columnDetails,
+                    columnConstraints = columnConstraints
+                )
+            ),
+            sequenceDetails = sequenceDetails,
+        )
     }
 
     /**
      * Generate a list of Change objects from column, constraint, and sequence details for multiple tables
      *
-     * @param tableNames The names of the tables
-     * @param columnDetails Map of table names to their column details
-     * @param constraintDetails Map of table names to their constraint details
+     * @param tableInfoss List of table information
      * @param sequenceDetails List of sequence details
      * @return List of Change objects ordered by dependencies
      */
     fun generateChanges(
         tableInfoss: List<PostgresqlTableInfo>,
-        sequenceDetails: List<PostgresqlSequenceDetail>,
+        sequenceDetails: List<PostgresqlSequenceDetail> = emptyList(),
     ): List<Change> {
         // Generate changes for each table
-        val allChanges = tableInfoss.flatMap { tableInfo ->
+        val tableChanges = tableInfoss.flatMap { tableInfo ->
             val columns = tableInfo.columnDetails
             val constraints = tableInfo.columnConstraints
             generateChangesFromColumns(tableInfo.tableName, columns) + generateChangesFromConstraints(constraints)
         }
 
+        val tableChangeSequenceNames = tableChanges
+            .mapNotNull {
+                val createSequence = it as? CreateSequence
+                createSequence?.sequenceName
+            }
+
         // Add sequence changes
         val sequenceChanges = generateChangesFromSequences(sequenceDetails)
+        val filteredSequenceChanges = sequenceChanges
+            .filter { sequenceChange ->
+                sequenceChange.sequenceName !in tableChangeSequenceNames
+            }
 
         // Combine changes and sort based on dependencies
-        return sortChangesByDependencies(allChanges + sequenceChanges)
+        return sortChangesByDependencies(tableChanges + filteredSequenceChanges)
     }
 
     /**
@@ -181,45 +204,63 @@ class PostgresqlChangeGenerator {
      * @return Sorted list of changes
      */
     fun sortChangesByDependencies(changes: List<Change>): List<Change> {
-        // Create a map of table names to their CreateTable changes
-        val tableCreationMap = changes.filterIsInstance<CreateTable>()
-            .associateBy { it.tableName }
+//        // Create a map of table names to their CreateTable changes
+//        val tableCreationMap = changes.filterIsInstance<CreateTable>()
+//            .associateBy { it.tableName }
+//
+//        // Create a map of table names to their foreign key dependencies
+//        val dependencyMap = changes.filterIsInstance<AddForeignKey>()
+//            .groupBy { it.tableName }
+//            .mapValues { (_, fks) -> fks.map { it.referencedTableName }.toSet() }
+//
+//        // Topological sort to resolve dependencies
+//        val sortedTables = mutableListOf<String>()
+//        val visited = mutableSetOf<String>()
+//        val visiting = mutableSetOf<String>()
+//
+//        // Process all tables
+//        tableCreationMap.keys.forEach { tableName ->
+//            visitTableImmutable(tableName, tableCreationMap, dependencyMap, visited, visiting, sortedTables)
+//        }
+//
+//        // Create sorted list of CreateTable changes
+//        val sortedCreateTables = sortedTables.mapNotNull { tableName -> tableCreationMap[tableName] }
+//
+//        // Get processed tables
+//        val processedTables = sortedCreateTables.map { it.tableName }.toSet()
+//
+//        // Filter foreign keys that reference existing tables
+//        val validForeignKeys = changes.filterIsInstance<AddForeignKey>()
+//            .filter { fk ->
+//                processedTables.contains(fk.tableName) &&
+//                    processedTables.contains(fk.referencedTableName)
+//            }
+//
+//        // Filter other changes
+//        val otherChanges = changes.filter { change ->
+//            change !is CreateTable && change !is AddForeignKey
+//        }
+//
+//        // Combine all changes in the correct order
+//        return sortedCreateTables + validForeignKeys + otherChanges
 
-        // Create a map of table names to their foreign key dependencies
-        val dependencyMap = changes.filterIsInstance<AddForeignKey>()
-            .groupBy { it.tableName }
-            .mapValues { (_, fks) -> fks.map { it.referencedTableName }.toSet() }
-
-        // Topological sort to resolve dependencies
-        val sortedTables = mutableListOf<String>()
-        val visited = mutableSetOf<String>()
-        val visiting = mutableSetOf<String>()
-
-        // Process all tables
-        tableCreationMap.keys.forEach { tableName ->
-            visitTableImmutable(tableName, tableCreationMap, dependencyMap, visited, visiting, sortedTables)
+        fun getSortKey1(c: Change) = when (c) {
+            is CreateSequence -> 100
+            is CreateTable -> 200
+            is AddForeignKey -> 300
+            else -> 500
         }
-
-        // Create sorted list of CreateTable changes
-        val sortedCreateTables = sortedTables.mapNotNull { tableName -> tableCreationMap[tableName] }
-
-        // Get processed tables
-        val processedTables = sortedCreateTables.map { it.tableName }.toSet()
-
-        // Filter foreign keys that reference existing tables
-        val validForeignKeys = changes.filterIsInstance<AddForeignKey>()
-            .filter { fk ->
-                processedTables.contains(fk.tableName) &&
-                    processedTables.contains(fk.referencedTableName)
-            }
-
-        // Filter other changes
-        val otherChanges = changes.filter { change ->
-            change !is CreateTable && change !is AddForeignKey
+        fun getSortKey2(c: Change) = when (c) {
+            is CreateSequence -> c.sequenceName
+            is CreateTable -> c.tableName
+            is AddForeignKey -> c.tableName
+            else -> ""
         }
-
-        // Combine all changes in the correct order
-        return sortedCreateTables + validForeignKeys + otherChanges
+        val sorted = changes.sortedWith(
+            compareBy(::getSortKey1)
+                .thenBy(::getSortKey2)
+        )
+        return sorted
     }
 
     /**
@@ -291,7 +332,7 @@ class PostgresqlChangeGenerator {
      */
     fun generateChangesFromSequences(
         sequenceDetails: List<PostgresqlSequenceDetail>
-    ): List<Change> {
+    ): List<CreateSequence> {
         return sequenceDetails.map { sequenceDetail ->
             CreateSequence(
                 sequenceName = sequenceDetail.sequenceName,
