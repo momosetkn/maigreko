@@ -76,6 +76,11 @@ class Versioning(
             block()
         }
     }
+
+    companion object {
+        const val VERSIONING_TABLE_NAME = "change_set_history"
+        const val VERSIONING_SEQUENCE_NAME = "change_set_history_id_seq"
+    }
 }
 
 private fun ChangeSet.toChangeSetHistory(): ChangeSetHistory {

@@ -65,6 +65,17 @@ data class AddUniqueConstraint(
     val columnNames: List<String>,
 ) : Change
 
+data class CreateSequence(
+    val sequenceName: String,
+    val dataType: String? = null,
+    val startValue: Long? = null,
+    val minValue: Long? = null,
+    val maxValue: Long? = null,
+    val incrementBy: Long? = null,
+    val cycle: Boolean = false,
+    val cacheSize: Long? = null,
+) : Change
+
 enum class ForeignKeyAction {
     CASCADE,
     SET_NULL,

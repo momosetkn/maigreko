@@ -17,7 +17,7 @@ class ChangeSetHistoryRepository(
      */
     fun acquireLock() {
         val sql = "SELECT * FROM ${ChangeSetHistory.TABLE_NAME} FOR UPDATE"
-        jdbcExecutor.executeQuery(sql, emptyList()) { /* Do nothing with the result */ }
+        jdbcExecutor.executeQuery(sql)
     }
 
     /**
@@ -29,7 +29,7 @@ class ChangeSetHistoryRepository(
             WHERE ${ChangeSetHistory.CHANGE_SET_ID_COLUMN} = ?
         """.trimIndent()
 
-        return jdbcExecutor.executeQuery(sql, listOf(changeSetId)) { resultSet ->
+        return jdbcExecutor.executeQuery(sql, changeSetId) { resultSet ->
             if (resultSet.next()) {
                 mapResultSetToEntity(resultSet)
             } else {

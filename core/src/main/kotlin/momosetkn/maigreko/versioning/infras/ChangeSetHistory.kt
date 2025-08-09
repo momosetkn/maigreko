@@ -1,5 +1,6 @@
 package momosetkn.maigreko.versioning.infras
 
+import momosetkn.maigreko.versioning.Versioning
 import java.time.LocalDateTime
 
 data class ChangeSetHistory(
@@ -11,7 +12,7 @@ data class ChangeSetHistory(
     val appliedAt: LocalDateTime = LocalDateTime.now(),
 ) {
     companion object {
-        const val TABLE_NAME = "change_set_history"
+        const val TABLE_NAME = Versioning.VERSIONING_TABLE_NAME
         const val ID_COLUMN = "id"
         const val FILENAME_COLUMN = "filename"
         const val AUTHOR_COLUMN = "author"

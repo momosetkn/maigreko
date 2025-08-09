@@ -8,4 +8,5 @@ class PostgresqlDdlGenerator :
     PostgresqlRenameDdlGenerator,
     PostgresqlDropDdlGenerator,
     PostgresqlModifyDataTypeDdlGenerator,
-    PostgresqlNotNullConstraintDdlGenerator
+    PostgresqlNotNullConstraintDdlGenerator,
+    PostgresqlCreateSequenceDdlGenerator

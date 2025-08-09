@@ -6,6 +6,7 @@ import momosetkn.maigreko.change.AddIndex
 import momosetkn.maigreko.change.AddNotNullConstraint
 import momosetkn.maigreko.change.AddUniqueConstraint
 import momosetkn.maigreko.change.Change
+import momosetkn.maigreko.change.CreateSequence
 import momosetkn.maigreko.change.CreateTable
 import momosetkn.maigreko.change.ModifyDataType
 import momosetkn.maigreko.change.RenameColumn
@@ -25,6 +26,7 @@ interface MigrateEngine {
             is ModifyDataType -> ddlGenerator.modifyDataType(change)
             is AddNotNullConstraint -> ddlGenerator.addNotNullConstraint(change)
             is AddUniqueConstraint -> ddlGenerator.addUniqueConstraint(change)
+            is CreateSequence -> ddlGenerator.createSequence(change)
         }
     }
 
@@ -39,6 +41,7 @@ interface MigrateEngine {
             is ModifyDataType -> ddlGenerator.reverseModifyDataType(change)
             is AddNotNullConstraint -> ddlGenerator.dropNotNullConstraint(change)
             is AddUniqueConstraint -> ddlGenerator.dropUniqueConstraint(change)
+            is CreateSequence -> ddlGenerator.dropSequence(change)
         }
     }
 }

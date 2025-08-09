@@ -6,10 +6,12 @@ import momosetkn.maigreko.change.AddUniqueConstraint
 import momosetkn.maigreko.change.Change
 import momosetkn.maigreko.change.Column
 import momosetkn.maigreko.change.ColumnConstraint
+import momosetkn.maigreko.change.CreateSequence
 import momosetkn.maigreko.change.CreateTable
 import momosetkn.maigreko.change.ForeignKeyAction
 import momosetkn.maigreko.introspector.infras.PostgresqlColumnDetail
 import momosetkn.maigreko.introspector.infras.PostgresqlConstraintDetail
+import momosetkn.maigreko.introspector.infras.PostgresqlSequenceDetail
 
 /**
  * Generates Change objects from PostgreSQL database information
@@ -101,7 +103,7 @@ class PostgresqlChangeGenerator {
     }
 
     /**
-     * Generate a list of Change objects from both column and constraint details
+     * Generate a list of Change objects from both column and constraint details for a single table
      *
      * @param tableName The name of the table
      * @param columnDetails List of column details
@@ -113,12 +115,63 @@ class PostgresqlChangeGenerator {
         columnDetails: List<PostgresqlColumnDetail>,
         constraintDetails: List<PostgresqlConstraintDetail>
     ): List<Change> {
-        // Generate changes from columns and constraints
+        return generateChanges(
+            tableName = tableName,
+            columnDetails = columnDetails,
+            constraintDetails = constraintDetails,
+            sequenceDetails = emptyList()
+        )
+    }
+
+    /**
+     * Generate a list of Change objects from column, constraint, and sequence details for a single table
+     *
+     * @param tableName The name of the table
+     * @param columnDetails List of column details
+     * @param constraintDetails List of constraint details
+     * @param sequenceDetails List of sequence details
+     * @return List of Change objects ordered by dependencies
+     */
+    fun generateChanges(
+        tableName: String,
+        columnDetails: List<PostgresqlColumnDetail>,
+        constraintDetails: List<PostgresqlConstraintDetail>,
+        sequenceDetails: List<PostgresqlSequenceDetail>
+    ): List<Change> {
+        // Generate changes from columns, constraints, and sequences
         val columnChanges = generateChangesFromColumns(tableName, columnDetails)
         val constraintChanges = generateChangesFromConstraints(constraintDetails)
-        
+        val sequenceChanges = generateChangesFromSequences(sequenceDetails)
+
         // Combine changes and sort based on dependencies
-        return sortChangesByDependencies(columnChanges + constraintChanges)
+        return sortChangesByDependencies(columnChanges + constraintChanges + sequenceChanges)
+    }
+
+    /**
+     * Generate a list of Change objects from column, constraint, and sequence details for multiple tables
+     *
+     * @param tableNames The names of the tables
+     * @param columnDetails Map of table names to their column details
+     * @param constraintDetails Map of table names to their constraint details
+     * @param sequenceDetails List of sequence details
+     * @return List of Change objects ordered by dependencies
+     */
+    fun generateChanges(
+        tableInfoss: List<PostgresqlTableInfo>,
+        sequenceDetails: List<PostgresqlSequenceDetail>,
+    ): List<Change> {
+        // Generate changes for each table
+        val allChanges = tableInfoss.flatMap { tableInfo ->
+            val columns = tableInfo.columnDetails
+            val constraints = tableInfo.columnConstraints
+            generateChangesFromColumns(tableInfo.tableName, columns) + generateChangesFromConstraints(constraints)
+        }
+
+        // Add sequence changes
+        val sequenceChanges = generateChangesFromSequences(sequenceDetails)
+
+        // Combine changes and sort based on dependencies
+        return sortChangesByDependencies(allChanges + sequenceChanges)
     }
 
     /**
@@ -155,9 +208,9 @@ class PostgresqlChangeGenerator {
 
         // Filter foreign keys that reference existing tables
         val validForeignKeys = changes.filterIsInstance<AddForeignKey>()
-            .filter { fk -> 
-                processedTables.contains(fk.tableName) && 
-                processedTables.contains(fk.referencedTableName) 
+            .filter { fk ->
+                processedTables.contains(fk.tableName) &&
+                    processedTables.contains(fk.referencedTableName)
             }
 
         // Filter other changes
@@ -168,10 +221,10 @@ class PostgresqlChangeGenerator {
         // Combine all changes in the correct order
         return sortedCreateTables + validForeignKeys + otherChanges
     }
-    
+
     /**
      * Visit a table in the dependency graph for topological sorting (immutable version)
-     * 
+     *
      * @param tableName Name of the table to visit
      * @param tableCreationMap Map of table names to their CreateTable changes
      * @param dependencyMap Map of table names to their dependencies
@@ -213,7 +266,6 @@ class PostgresqlChangeGenerator {
         result.add(tableName)
     }
 
-
     /**
      * Map PostgreSQL foreign key action to ForeignKeyAction enum
      *
@@ -228,6 +280,29 @@ class PostgresqlChangeGenerator {
             "n" -> ForeignKeyAction.SET_NULL
             "d" -> ForeignKeyAction.SET_DEFAULT
             else -> null
+        }
+    }
+
+    /**
+     * Generate a list of Change objects from PostgreSQL sequence details
+     *
+     * @param sequenceDetails List of sequence details
+     * @return List of Change objects
+     */
+    fun generateChangesFromSequences(
+        sequenceDetails: List<PostgresqlSequenceDetail>
+    ): List<Change> {
+        return sequenceDetails.map { sequenceDetail ->
+            CreateSequence(
+                sequenceName = sequenceDetail.sequenceName,
+                dataType = sequenceDetail.dataType,
+                startValue = sequenceDetail.startValue,
+                minValue = sequenceDetail.minValue,
+                maxValue = sequenceDetail.maxValue,
+                incrementBy = sequenceDetail.incrementBy,
+                cycle = sequenceDetail.cycle,
+                cacheSize = sequenceDetail.cacheSize
+            )
         }
     }
 }

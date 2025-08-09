@@ -20,6 +20,7 @@ class PostgresqlChangeGeneratorSpec : FunSpec({
             val tableName = "users"
             val columnDetails = listOf(
                 PostgresqlColumnDetail(
+                    tableName = tableName,
                     columnName = "id",
                     type = "bigint",
                     notNull = "YES",
@@ -30,6 +31,7 @@ class PostgresqlChangeGeneratorSpec : FunSpec({
                     foreignColumn = null
                 ),
                 PostgresqlColumnDetail(
+                    tableName = tableName,
                     columnName = "username",
                     type = "character varying(255)",
                     notNull = "YES",
@@ -40,6 +42,7 @@ class PostgresqlChangeGeneratorSpec : FunSpec({
                     foreignColumn = null
                 ),
                 PostgresqlColumnDetail(
+                    tableName = tableName,
                     columnName = "email",
                     type = "character varying(255)",
                     notNull = "YES",
@@ -227,6 +230,7 @@ class PostgresqlChangeGeneratorSpec : FunSpec({
             val tableName = "users"
             val columnDetails = listOf(
                 PostgresqlColumnDetail(
+                    tableName = tableName,
                     columnName = "id",
                     type = "bigint",
                     notNull = "YES",
@@ -237,6 +241,7 @@ class PostgresqlChangeGeneratorSpec : FunSpec({
                     foreignColumn = null
                 ),
                 PostgresqlColumnDetail(
+                    tableName = tableName,
                     columnName = "role_id",
                     type = "bigint",
                     notNull = "YES",

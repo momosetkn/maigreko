@@ -8,21 +8,21 @@ import momosetkn.maigreko.change.ColumnConstraint
 import momosetkn.maigreko.change.CreateTable
 import momosetkn.maigreko.db.PostgresDataSource
 import momosetkn.maigreko.db.PostgresqlDatabase
+import momosetkn.maigreko.introspector.PostgresqlInfoService
 import momosetkn.maigreko.introspector.infras.PostgresqlColumnDetail
-import momosetkn.maigreko.introspector.infras.PostgresqlInfoRepository
 import momosetkn.maigreko.sql.PostgreMigrateEngine
 import javax.sql.DataSource
 
 class VersioningIntegrationSpec : FunSpec({
     lateinit var versioning: Versioning
     lateinit var dataSource: DataSource
-    lateinit var jdbcInfoDao: PostgresqlInfoRepository
+    lateinit var postgreInfoService: PostgresqlInfoService
 
     beforeSpec {
         PostgresqlDatabase.start()
         val container = PostgresqlDatabase.startedContainer
         dataSource = PostgresDataSource(container)
-        jdbcInfoDao = PostgresqlInfoRepository(dataSource)
+        postgreInfoService = PostgresqlInfoService(dataSource)
         versioning = Versioning(dataSource, PostgreMigrateEngine)
     }
 
@@ -57,9 +57,13 @@ class VersioningIntegrationSpec : FunSpec({
             versioning.forward(changeSet)
             versioning.forward(changeSet)
 
-            val columnDetails = jdbcInfoDao.getColumnDetails("migrations")
-            columnDetails.size shouldBe 1
-            columnDetails[0] shouldBe PostgresqlColumnDetail(
+            val (tableInfos, sequenceDetail) = postgreInfoService.fetchAll()
+            tableInfos.size shouldBe 1
+
+            val tableInfo = tableInfos[0]
+            tableInfo.columnDetails.size shouldBe 1
+            tableInfo.columnDetails[0] shouldBe PostgresqlColumnDetail(
+                tableName = "migrations",
                 columnName = "version",
                 type = "character varying(255)",
                 notNull = "YES",
@@ -70,8 +74,8 @@ class VersioningIntegrationSpec : FunSpec({
                 foreignColumn = null,
             )
 
-            val constraintDetails = jdbcInfoDao.getConstraintDetails("migrations")
-            constraintDetails.size shouldBe 0
+            tableInfo.columnConstraints.size shouldBe 0
+            sequenceDetail.size shouldBe 0
         }
     }
 
@@ -98,11 +102,10 @@ class VersioningIntegrationSpec : FunSpec({
             versioning.forward(changeSet)
             versioning.rollback(changeSet)
 
-            val columnDetails = jdbcInfoDao.getColumnDetails("migrations")
-            columnDetails.size shouldBe 0
+            val (tableInfos, sequenceDetail) = postgreInfoService.fetchAll()
+            tableInfos.size shouldBe 0
 
-            val constraintDetails = jdbcInfoDao.getConstraintDetails("migrations")
-            constraintDetails.size shouldBe 0
+            sequenceDetail.size shouldBe 0
         }
     }
 })

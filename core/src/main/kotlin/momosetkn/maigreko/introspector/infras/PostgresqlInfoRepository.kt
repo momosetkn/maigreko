@@ -4,15 +4,19 @@ import momosetkn.maigreko.jdbc.JdbcExecutor
 import java.sql.ResultSet
 import javax.sql.DataSource
 
-class PostgresqlInfoRepository(
+internal class PostgresqlInfoRepository(
     private val dataSource: DataSource
 ) {
     private val jdbcExecutor = JdbcExecutor(dataSource)
 
     /**
      * Get constraint details for a table
+     *
+     * @return List of constraint details for the specified table
      */
-    fun getConstraintDetails(tableName: String): List<PostgresqlConstraintDetail> {
+    fun getConstraintDetails(
+        excludeTableName: String,
+    ): List<PostgresqlConstraintDetail> {
         val sql = """
             SELECT
                 con.conname AS constraint_name,
@@ -29,11 +33,11 @@ class PostgresqlInfoRepository(
             JOIN pg_class f_tbl ON f_tbl.oid = con.confrelid
             JOIN pg_attribute f_col ON f_col.attnum = ANY(con.confkey) AND f_col.attrelid = con.confrelid
             WHERE
-                tbl.relname = ?
-                AND con.contype = 'f';
+                con.contype = 'f'
+                AND tbl.relname <> ?
         """.trimIndent()
 
-        return jdbcExecutor.executeQuery(sql, listOf(tableName)) { resultSet ->
+        return jdbcExecutor.executeQuery(sql, excludeTableName) { resultSet ->
             val results = mutableListOf<PostgresqlConstraintDetail>()
             while (resultSet.next()) {
                 results.add(mapConstraintResultSetToEntity(resultSet))
@@ -46,7 +50,9 @@ class PostgresqlInfoRepository(
      * Get column details for a table
      */
     @Suppress("LongMethod")
-    fun getColumnDetails(tableName: String): List<PostgresqlColumnDetail> {
+    fun getColumnDetails(
+        excludeTableName: String,
+    ): List<PostgresqlColumnDetail> {
         val sql = """
             WITH table_cols AS (
                 SELECT
@@ -61,7 +67,7 @@ class PostgresqlInfoRepository(
                     c.is_nullable,
                     c.column_default
                 FROM information_schema.columns c
-                WHERE c.table_schema = 'public' AND c.table_name = ?
+                WHERE c.table_schema = 'public'
             ),
             pk_cols AS (
                 SELECT
@@ -71,19 +77,19 @@ class PostgresqlInfoRepository(
                 JOIN information_schema.key_column_usage kcu
                   ON tc.constraint_name = kcu.constraint_name
                 WHERE tc.constraint_type = 'PRIMARY KEY'
-                  AND tc.table_name = ?
             ),
             unique_cols AS (
                 SELECT DISTINCT
+                    tc.table_name,
                     kcu.column_name
                 FROM information_schema.table_constraints tc
                 JOIN information_schema.key_column_usage kcu
                   ON tc.constraint_name = kcu.constraint_name
                 WHERE tc.constraint_type = 'UNIQUE'
-                  AND tc.table_name = ?
             ),
             fk_cols AS (
                 SELECT
+                    tc.table_name,
                     kcu.column_name,
                     ccu.table_name AS foreign_table,
                     ccu.column_name AS foreign_column
@@ -93,9 +99,9 @@ class PostgresqlInfoRepository(
                 JOIN information_schema.constraint_column_usage AS ccu
                   ON ccu.constraint_name = tc.constraint_name
                 WHERE tc.constraint_type = 'FOREIGN KEY'
-                  AND tc.table_name = ?
             )
             SELECT
+                t.table_name,
                 t.column_name,
                 t.data_type ||
                     CASE
@@ -113,13 +119,14 @@ class PostgresqlInfoRepository(
                 f.foreign_table,
                 f.foreign_column
             FROM table_cols t
-            LEFT JOIN pk_cols p ON t.column_name = p.column_name
-            LEFT JOIN unique_cols u ON t.column_name = u.column_name
-            LEFT JOIN fk_cols f ON t.column_name = f.column_name
+            LEFT JOIN pk_cols p ON t.table_name = p.table_name AND t.column_name = p.column_name
+            LEFT JOIN unique_cols u ON t.table_name = u.table_name AND t.column_name = u.column_name
+            LEFT JOIN fk_cols f ON t.table_name = f.table_name AND t.column_name = f.column_name
+            WHERE t.table_name <> ?
             ORDER BY t.ordinal_position;
         """.trimIndent()
 
-        return jdbcExecutor.executeQuery(sql, listOf(tableName, tableName, tableName, tableName)) { resultSet ->
+        return jdbcExecutor.executeQuery(sql, excludeTableName) { resultSet ->
             val results = mutableListOf<PostgresqlColumnDetail>()
             while (resultSet.next()) {
                 results.add(mapColumnResultSetToEntity(resultSet))
@@ -148,6 +155,7 @@ class PostgresqlInfoRepository(
      */
     private fun mapColumnResultSetToEntity(resultSet: ResultSet): PostgresqlColumnDetail {
         return PostgresqlColumnDetail(
+            tableName = resultSet.getString("table_name"),
             columnName = resultSet.getString("column_name"),
             type = resultSet.getString("type"),
             notNull = resultSet.getString("not_null"),
@@ -157,5 +165,78 @@ class PostgresqlInfoRepository(
             foreignTable = resultSet.getString("foreign_table"),
             foreignColumn = resultSet.getString("foreign_column")
         )
+    }
+
+    /**
+     * Get sequence details from the database
+     */
+    fun getSequenceDetails(exclude: String): List<PostgresqlSequenceDetail> {
+        val sql = """
+            SELECT sequencename,
+                   sequenceowner,
+                   data_type,
+                   start_value,
+                   min_value,
+                   max_value,
+                   increment_by,
+                   cycle,
+                   cache_size,
+                   last_value
+            FROM pg_sequences
+            WHERE schemaname = current_schema()
+            AND sequencename != ?;
+        """.trimIndent()
+
+        return jdbcExecutor.executeQuery(sql, exclude) { resultSet ->
+            val results = mutableListOf<PostgresqlSequenceDetail>()
+            while (resultSet.next()) {
+                results.add(mapSequenceResultSetToEntity(resultSet))
+            }
+            results
+        }
+    }
+
+    /**
+     * Map a result set to a PostgresqlSequenceDetail entity
+     */
+    private fun mapSequenceResultSetToEntity(resultSet: ResultSet): PostgresqlSequenceDetail {
+        return PostgresqlSequenceDetail(
+            sequenceName = resultSet.getString("sequencename"),
+            sequenceOwner = resultSet.getString("sequenceowner"),
+            dataType = resultSet.getString("data_type"),
+            startValue = resultSet.getLong("start_value"),
+            minValue = resultSet.getLong("min_value"),
+            maxValue = resultSet.getLong("max_value"),
+            incrementBy = resultSet.getLong("increment_by"),
+            cycle = resultSet.getBoolean("cycle"),
+            cacheSize = resultSet.getLong("cache_size"),
+            lastValue = if (resultSet.getObject("last_value") == null) null else resultSet.getLong("last_value")
+        )
+    }
+
+    /**
+     * Get a list of all tables in the current schema
+     *
+     * @return List of table names
+     */
+    fun getTableList(
+        excludeTable: String,
+    ): List<String> {
+        val sql = """
+            SELECT table_name
+            FROM information_schema.tables
+            WHERE table_schema = 'public'
+                AND table_name <> ?
+                AND table_type = 'BASE TABLE'
+            ORDER BY table_name;
+        """.trimIndent()
+
+        return jdbcExecutor.executeQuery(sql, excludeTable) { resultSet ->
+            val results = mutableListOf<String>()
+            while (resultSet.next()) {
+                results.add(resultSet.getString("table_name"))
+            }
+            results
+        }
     }
 }

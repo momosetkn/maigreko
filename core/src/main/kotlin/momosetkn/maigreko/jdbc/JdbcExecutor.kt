@@ -74,15 +74,30 @@ class JdbcExecutor(
      */
     fun <T> executeQuery(
         @Language("sql") sql: String,
-        parameters: List<Any?> = emptyList(),
-        mapper: (ResultSet) -> T
+        vararg parameters: Any?,
+        mapper: (ResultSet) -> T,
     ): T {
         return withConnection { connection ->
             connection.prepareStatement(sql).use { statement ->
-                bindParameters(statement, parameters)
+                bindParameters(statement, parameters.toList())
                 statement.executeQuery().use { resultSet ->
                     return@withConnection mapper(resultSet)
                 }
+            }
+        }
+    }
+
+    /**
+     * Execute a query and map the results
+     */
+    fun executeQuery(
+        @Language("sql") sql: String,
+        vararg parameters: Any? = emptyArray(),
+    ) {
+        return withConnection { connection ->
+            connection.prepareStatement(sql).use { statement ->
+                bindParameters(statement, parameters.toList())
+                statement.executeQuery()
             }
         }
     }
@@ -136,6 +151,7 @@ class JdbcExecutor(
                 is Boolean -> statement.setBoolean(index + 1, param)
                 is LocalDateTime -> statement.setTimestamp(index + 1, Timestamp.valueOf(param))
                 is LocalDate -> statement.setDate(index + 1, Date.valueOf(param))
+//                is List<*> -> statement.setArray(index + 1, connection.createArrayOf("text", param.toTypedArray()))
                 else -> statement.setObject(index + 1, param)
             }
         }

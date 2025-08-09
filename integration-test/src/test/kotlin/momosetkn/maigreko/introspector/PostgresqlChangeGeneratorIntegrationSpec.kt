@@ -7,10 +7,10 @@ import io.kotest.matchers.string.shouldContain
 import momosetkn.maigreko.change.AddForeignKey
 import momosetkn.maigreko.change.AddNotNullConstraint
 import momosetkn.maigreko.change.AddUniqueConstraint
+import momosetkn.maigreko.change.CreateSequence
 import momosetkn.maigreko.change.CreateTable
 import momosetkn.maigreko.db.PostgresDataSource
 import momosetkn.maigreko.db.PostgresqlDatabase
-import momosetkn.maigreko.introspector.infras.PostgresqlInfoRepository
 import momosetkn.maigreko.sql.PostgreMigrateEngine
 import java.sql.Connection
 import javax.sql.DataSource
@@ -18,7 +18,7 @@ import javax.sql.DataSource
 class PostgresqlChangeGeneratorIntegrationSpec : FunSpec({
     lateinit var connection: Connection
     lateinit var dataSource: DataSource
-    lateinit var infoRepository: PostgresqlInfoRepository
+    lateinit var postgresqlInfoService: PostgresqlInfoService
     lateinit var changeGenerator: PostgresqlChangeGenerator
 
     beforeSpec {
@@ -26,7 +26,7 @@ class PostgresqlChangeGeneratorIntegrationSpec : FunSpec({
         val container = PostgresqlDatabase.startedContainer
         dataSource = PostgresDataSource(container)
         connection = dataSource.connection
-        infoRepository = PostgresqlInfoRepository(dataSource)
+        postgresqlInfoService = PostgresqlInfoService(dataSource)
         changeGenerator = PostgresqlChangeGenerator()
     }
 
@@ -60,13 +60,13 @@ class PostgresqlChangeGeneratorIntegrationSpec : FunSpec({
                 )
             }
 
-            // Get column details from the database
-            val columnDetails = infoRepository.getColumnDetails("users")
-            val constraintDetails = infoRepository.getConstraintDetails("users")
+            val (tableInfoss, sequenceDetails) = postgresqlInfoService.fetchAll()
 
-            // Generate changes
-            val changes = changeGenerator.generateChanges("users", columnDetails, constraintDetails)
-
+            // Generate changes for all tables using the new multi-table method
+            val changes = changeGenerator.generateChanges(
+                tableInfoss = tableInfoss,
+                sequenceDetails = sequenceDetails
+            )
             // Verify changes
             changes.filterIsInstance<CreateTable>().size shouldBe 1
 
@@ -81,6 +81,11 @@ class PostgresqlChangeGeneratorIntegrationSpec : FunSpec({
             // Verify constraints
             changes.filterIsInstance<AddNotNullConstraint>().size shouldBe 3 // id, username, email
             changes.filterIsInstance<AddUniqueConstraint>().size shouldBe 1 // username
+
+            // Verify sequences
+            val sequences = changes.filterIsInstance<CreateSequence>()
+            sequences.isNotEmpty() shouldBe true
+            sequences.any { it.sequenceName.contains("users_id_seq") } shouldBe true
         }
     }
 
@@ -110,39 +115,19 @@ class PostgresqlChangeGeneratorIntegrationSpec : FunSpec({
                 )
             }
 
-            // Get details for departments table
-            val deptColumnDetails = infoRepository.getColumnDetails("departments")
-            val deptConstraintDetails = infoRepository.getConstraintDetails("departments")
+            val (tableInfoss, sequenceDetails) = postgresqlInfoService.fetchAll()
 
-            // Get details for employees table
-            val empColumnDetails = infoRepository.getColumnDetails("employees")
-            val empConstraintDetails = infoRepository.getConstraintDetails("employees")
-
-            // Combine all details
-            val allColumnDetails = deptColumnDetails + empColumnDetails
-            val allConstraintDetails = deptConstraintDetails + empConstraintDetails
-
-            // Generate changes for both tables
-            val deptChanges = changeGenerator.generateChanges(
-                "departments",
-                deptColumnDetails,
-                deptConstraintDetails
+            // Generate changes for all tables using the new multi-table method
+            val allChanges = changeGenerator.generateChanges(
+                tableInfoss = tableInfoss,
+                sequenceDetails = sequenceDetails
             )
-            val empChanges = changeGenerator.generateChanges(
-                "employees",
-                empColumnDetails,
-                empConstraintDetails
-            )
-            val allChanges = deptChanges + empChanges
-
-            // Sort all changes by dependencies
-            val sortedChanges = changeGenerator.sortChangesByDependencies(allChanges)
 
             // Verify the order - departments should come before employees
-            val deptTableIndex = sortedChanges.indexOfFirst {
+            val deptTableIndex = allChanges.indexOfFirst {
                 it is CreateTable && it.tableName == "departments"
             }
-            val empTableIndex = sortedChanges.indexOfFirst {
+            val empTableIndex = allChanges.indexOfFirst {
                 it is CreateTable && it.tableName == "employees"
             }
 
@@ -150,11 +135,11 @@ class PostgresqlChangeGeneratorIntegrationSpec : FunSpec({
             (deptTableIndex < empTableIndex) shouldBe true
 
             // Check if foreign keys are present in the sorted changes
-            val foreignKeys = sortedChanges.filterIsInstance<AddForeignKey>()
+            val foreignKeys = allChanges.filterIsInstance<AddForeignKey>()
 
             // If foreign keys are present, verify their details
             if (foreignKeys.isNotEmpty()) {
-                val fkIndex = sortedChanges.indexOfFirst {
+                val fkIndex = allChanges.indexOfFirst {
                     it is AddForeignKey && (it as AddForeignKey).tableName == "employees"
                 }
 
@@ -168,6 +153,12 @@ class PostgresqlChangeGeneratorIntegrationSpec : FunSpec({
                     fk.referencedColumnNames shouldBe listOf("id")
                 }
             }
+
+            // Verify sequences
+            val sequences = allChanges.filterIsInstance<CreateSequence>()
+            sequences.isNotEmpty() shouldBe true
+            sequences.any { it.sequenceName.contains("departments_id_seq") } shouldBe true
+            sequences.any { it.sequenceName.contains("employees_id_seq") } shouldBe true
         }
     }
 
@@ -187,12 +178,13 @@ class PostgresqlChangeGeneratorIntegrationSpec : FunSpec({
                 )
             }
 
-            // Get column details from the database
-            val columnDetails = infoRepository.getColumnDetails("users")
-            val constraintDetails = infoRepository.getConstraintDetails("users")
+            val (tableInfoss, sequenceDetails) = postgresqlInfoService.fetchAll()
 
-            // Generate changes
-            val changes = changeGenerator.generateChanges("users", columnDetails, constraintDetails)
+            // Generate changes for all tables using the new multi-table method
+            val allChanges = changeGenerator.generateChanges(
+                tableInfoss = tableInfoss,
+                sequenceDetails = sequenceDetails
+            )
 
             // Store the original DDL for comparison
             val originalDdl = PostgresqlDatabase.generateDdl()
@@ -201,7 +193,7 @@ class PostgresqlChangeGeneratorIntegrationSpec : FunSpec({
             PostgresqlDatabase.clear()
 
             // Apply the changes using PostgreMigrateEngine
-            changes.forEach { change ->
+            allChanges.forEach { change ->
                 val ddl = PostgreMigrateEngine.forwardDdl(change)
                 connection.createStatement().use { statement ->
                     statement.execute(ddl)
@@ -221,6 +213,10 @@ class PostgresqlChangeGeneratorIntegrationSpec : FunSpec({
             resultingDdl shouldContain "username"
             resultingDdl shouldContain "email"
             resultingDdl shouldContain "created_at"
+
+            // Verify sequences are included
+            allChanges.filterIsInstance<CreateSequence>().isNotEmpty() shouldBe true
+            allChanges.filterIsInstance<CreateSequence>().any { it.sequenceName.contains("users_id_seq") } shouldBe true
         }
 
         test("should generate and apply changes for tables with relationships") {
@@ -248,28 +244,13 @@ class PostgresqlChangeGeneratorIntegrationSpec : FunSpec({
                 )
             }
 
-            // Get details for departments table
-            val deptColumnDetails = infoRepository.getColumnDetails("departments")
-            val deptConstraintDetails = infoRepository.getConstraintDetails("departments")
+            val (tableInfoss, sequenceDetails) = postgresqlInfoService.fetchAll()
 
-            // Get details for employees table
-            val empColumnDetails = infoRepository.getColumnDetails("employees")
-            val empConstraintDetails = infoRepository.getConstraintDetails("employees")
-
-            // Generate changes for both tables
-            val deptChanges = changeGenerator.generateChanges(
-                "departments",
-                deptColumnDetails,
-                deptConstraintDetails
+            // Generate changes for all tables using the new multi-table method
+            val allChanges = changeGenerator.generateChanges(
+                tableInfoss = tableInfoss,
+                sequenceDetails = sequenceDetails
             )
-            val empChanges = changeGenerator.generateChanges(
-                "employees",
-                empColumnDetails,
-                empConstraintDetails
-            )
-
-            // Combine and sort all changes
-            val allChanges = changeGenerator.sortChangesByDependencies(deptChanges + empChanges)
 
             // Store the original DDL for comparison
             val originalDdl = PostgresqlDatabase.generateDdl()
@@ -278,6 +259,7 @@ class PostgresqlChangeGeneratorIntegrationSpec : FunSpec({
 
             // Clear the database
             PostgresqlDatabase.clear()
+            val resultingDdl_ = PostgresqlDatabase.generateDdl()
 
             // Apply the changes using PostgreMigrateEngine
             allChanges.forEach { change ->
@@ -301,6 +283,12 @@ class PostgresqlChangeGeneratorIntegrationSpec : FunSpec({
             resultingDdl shouldContain "CREATE TABLE public.departments"
             resultingDdl shouldContain "CREATE TABLE public.employees"
             resultingDdl shouldContain "department_id"
+
+            // Verify sequences are included
+            val sequences = allChanges.filterIsInstance<CreateSequence>()
+            sequences.isNotEmpty() shouldBe true
+            sequences.any { it.sequenceName.contains("departments_id_seq") } shouldBe true
+            sequences.any { it.sequenceName.contains("employees_id_seq") } shouldBe true
         }
     }
 
@@ -373,24 +361,13 @@ class PostgresqlChangeGeneratorIntegrationSpec : FunSpec({
                 )
             }
 
-            // Get details for all tables
-            val tableNames = listOf("categories", "products", "customers", "orders", "order_items")
+            val (tableInfoss, sequenceDetails) = postgresqlInfoService.fetchAll()
 
-            // Collect column and constraint details for all tables
-            val allColumnDetails = tableNames.associate { tableName ->
-                tableName to infoRepository.getColumnDetails(tableName)
-            }
-
-            val allConstraintDetails = tableNames.associate { tableName ->
-                tableName to infoRepository.getConstraintDetails(tableName)
-            }
-
-            // Generate changes for all tables
-            val allChanges = tableNames.flatMap { tableName ->
-                val columnDetails = allColumnDetails[tableName] ?: emptyList()
-                val constraintDetails = allConstraintDetails[tableName] ?: emptyList()
-                changeGenerator.generateChanges(tableName, columnDetails, constraintDetails)
-            }
+            // Generate changes for all tables using the new multi-table method
+            val allChanges = changeGenerator.generateChanges(
+                tableInfoss = tableInfoss,
+                sequenceDetails = sequenceDetails
+            )
 
             // Sort all changes by dependencies
             val sortedChanges = changeGenerator.sortChangesByDependencies(allChanges)
@@ -428,6 +405,15 @@ class PostgresqlChangeGeneratorIntegrationSpec : FunSpec({
             resultingDdl shouldContain "customer_id"
             resultingDdl shouldContain "order_id"
             resultingDdl shouldContain "product_id"
+
+            // Verify sequences are included
+            val sequences = sortedChanges.filterIsInstance<CreateSequence>()
+            sequences.isNotEmpty() shouldBe true
+            sequences.any { it.sequenceName.contains("categories_id_seq") } shouldBe true
+            sequences.any { it.sequenceName.contains("products_id_seq") } shouldBe true
+            sequences.any { it.sequenceName.contains("customers_id_seq") } shouldBe true
+            sequences.any { it.sequenceName.contains("orders_id_seq") } shouldBe true
+            sequences.any { it.sequenceName.contains("order_items_id_seq") } shouldBe true
         }
     }
 })

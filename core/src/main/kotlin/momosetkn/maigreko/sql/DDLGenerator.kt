@@ -5,6 +5,7 @@ import momosetkn.maigreko.change.AddForeignKey
 import momosetkn.maigreko.change.AddIndex
 import momosetkn.maigreko.change.AddNotNullConstraint
 import momosetkn.maigreko.change.AddUniqueConstraint
+import momosetkn.maigreko.change.CreateSequence
 import momosetkn.maigreko.change.CreateTable
 import momosetkn.maigreko.change.ModifyDataType
 import momosetkn.maigreko.change.RenameColumn
@@ -41,6 +42,10 @@ interface DDLGenerator {
     fun addUniqueConstraint(addUniqueConstraint: AddUniqueConstraint): String
 
     fun dropUniqueConstraint(addUniqueConstraint: AddUniqueConstraint): String
+    
+    fun createSequence(createSequence: CreateSequence): String
+    
+    fun dropSequence(createSequence: CreateSequence): String
 
     fun reverseModifyDataType(modifyDataType: ModifyDataType): String {
         val reverseModifyDataType = ModifyDataType(

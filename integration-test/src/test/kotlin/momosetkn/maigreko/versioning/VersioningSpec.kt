@@ -8,20 +8,16 @@ import momosetkn.maigreko.change.ColumnConstraint
 import momosetkn.maigreko.change.CreateTable
 import momosetkn.maigreko.db.PostgresDataSource
 import momosetkn.maigreko.db.PostgresqlDatabase
-import momosetkn.maigreko.introspector.infras.PostgresqlColumnDetail
-import momosetkn.maigreko.introspector.infras.PostgresqlInfoRepository
 import momosetkn.maigreko.sql.PostgreMigrateEngine
 
 class VersioningSpec : FunSpec({
     lateinit var versioning: Versioning
     lateinit var dataSource: javax.sql.DataSource
-    lateinit var jdbcInfoDao: PostgresqlInfoRepository
 
     beforeSpec {
         PostgresqlDatabase.start()
         val container = PostgresqlDatabase.startedContainer
         dataSource = PostgresDataSource(container)
-        jdbcInfoDao = PostgresqlInfoRepository(dataSource)
         versioning = Versioning(dataSource, PostgreMigrateEngine)
     }
 
@@ -52,21 +48,115 @@ class VersioningSpec : FunSpec({
             versioning.forward(changeSet)
             versioning.forward(changeSet)
 
-            val columnDetails = jdbcInfoDao.getColumnDetails("migrations")
-            columnDetails.size shouldBe 1
-            columnDetails[0] shouldBe PostgresqlColumnDetail(
-                columnName = "version",
-                type = "character varying(255)",
-                notNull = "YES",
-                columnDefault = null,
-                primaryKey = "YES",
-                unique = "NO",
-                foreignTable = null,
-                foreignColumn = null,
-            )
+            PostgresqlDatabase.generateDdl() shouldBe """
+                --
+                -- PostgreSQL database dump
+                --
 
-            val constraintDetails = jdbcInfoDao.getConstraintDetails("migrations")
-            constraintDetails.size shouldBe 0
+                -- Dumped from database version 15.8 (Debian 15.8-1.pgdg120+1)
+                -- Dumped by pg_dump version 15.8 (Debian 15.8-1.pgdg120+1)
+
+                SET statement_timeout = 0;
+                SET lock_timeout = 0;
+                SET idle_in_transaction_session_timeout = 0;
+                SET client_encoding = 'UTF8';
+                SET standard_conforming_strings = on;
+                SELECT pg_catalog.set_config('search_path', '', false);
+                SET check_function_bodies = false;
+                SET xmloption = content;
+                SET client_min_messages = warning;
+                SET row_security = off;
+
+                --
+                -- Name: public; Type: SCHEMA; Schema: -; Owner: test
+                --
+
+                -- *not* creating schema, since initdb creates it
+
+
+                ALTER SCHEMA public OWNER TO test;
+
+                --
+                -- Name: SCHEMA public; Type: COMMENT; Schema: -; Owner: test
+                --
+
+                COMMENT ON SCHEMA public IS '';
+
+
+                SET default_tablespace = '';
+
+                SET default_table_access_method = heap;
+
+                --
+                -- Name: change_set_history; Type: TABLE; Schema: public; Owner: test
+                --
+
+                CREATE TABLE public.change_set_history (
+                    id bigint NOT NULL,
+                    filename character varying(255) NOT NULL,
+                    author character varying(255) NOT NULL,
+                    change_set_id character varying(255) NOT NULL,
+                    tag character varying(255),
+                    applied_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+                );
+
+
+                ALTER TABLE public.change_set_history OWNER TO test;
+
+                --
+                -- Name: change_set_history_id_seq; Type: SEQUENCE; Schema: public; Owner: test
+                --
+
+                ALTER TABLE public.change_set_history ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+                    SEQUENCE NAME public.change_set_history_id_seq
+                    START WITH 1
+                    INCREMENT BY 1
+                    NO MINVALUE
+                    NO MAXVALUE
+                    CACHE 1
+                );
+
+
+                --
+                -- Name: migrations; Type: TABLE; Schema: public; Owner: test
+                --
+
+                CREATE TABLE public.migrations (
+                    version character varying(255) NOT NULL
+                );
+
+
+                ALTER TABLE public.migrations OWNER TO test;
+
+                --
+                -- Name: change_set_history change_set_history_pkey; Type: CONSTRAINT; Schema: public; Owner: test
+                --
+
+                ALTER TABLE ONLY public.change_set_history
+                    ADD CONSTRAINT change_set_history_pkey PRIMARY KEY (id);
+
+
+                --
+                -- Name: migrations migrations_pkey; Type: CONSTRAINT; Schema: public; Owner: test
+                --
+
+                ALTER TABLE ONLY public.migrations
+                    ADD CONSTRAINT migrations_pkey PRIMARY KEY (version);
+
+
+                --
+                -- Name: SCHEMA public; Type: ACL; Schema: -; Owner: test
+                --
+
+                REVOKE USAGE ON SCHEMA public FROM PUBLIC;
+
+
+                --
+                -- PostgreSQL database dump complete
+                --
+
+
+            """.trimIndent()
         }
     }
 
@@ -93,11 +183,96 @@ class VersioningSpec : FunSpec({
             versioning.forward(changeSet)
             versioning.rollback(changeSet)
 
-            val columnDetails = jdbcInfoDao.getColumnDetails("migrations")
-            columnDetails.size shouldBe 0
+            PostgresqlDatabase.generateDdl() shouldBe """
+                --
+                -- PostgreSQL database dump
+                --
 
-            val constraintDetails = jdbcInfoDao.getConstraintDetails("migrations")
-            constraintDetails.size shouldBe 0
+                -- Dumped from database version 15.8 (Debian 15.8-1.pgdg120+1)
+                -- Dumped by pg_dump version 15.8 (Debian 15.8-1.pgdg120+1)
+
+                SET statement_timeout = 0;
+                SET lock_timeout = 0;
+                SET idle_in_transaction_session_timeout = 0;
+                SET client_encoding = 'UTF8';
+                SET standard_conforming_strings = on;
+                SELECT pg_catalog.set_config('search_path', '', false);
+                SET check_function_bodies = false;
+                SET xmloption = content;
+                SET client_min_messages = warning;
+                SET row_security = off;
+
+                --
+                -- Name: public; Type: SCHEMA; Schema: -; Owner: test
+                --
+
+                -- *not* creating schema, since initdb creates it
+
+
+                ALTER SCHEMA public OWNER TO test;
+
+                --
+                -- Name: SCHEMA public; Type: COMMENT; Schema: -; Owner: test
+                --
+
+                COMMENT ON SCHEMA public IS '';
+
+
+                SET default_tablespace = '';
+
+                SET default_table_access_method = heap;
+
+                --
+                -- Name: change_set_history; Type: TABLE; Schema: public; Owner: test
+                --
+
+                CREATE TABLE public.change_set_history (
+                    id bigint NOT NULL,
+                    filename character varying(255) NOT NULL,
+                    author character varying(255) NOT NULL,
+                    change_set_id character varying(255) NOT NULL,
+                    tag character varying(255),
+                    applied_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+                );
+
+
+                ALTER TABLE public.change_set_history OWNER TO test;
+
+                --
+                -- Name: change_set_history_id_seq; Type: SEQUENCE; Schema: public; Owner: test
+                --
+
+                ALTER TABLE public.change_set_history ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+                    SEQUENCE NAME public.change_set_history_id_seq
+                    START WITH 1
+                    INCREMENT BY 1
+                    NO MINVALUE
+                    NO MAXVALUE
+                    CACHE 1
+                );
+
+
+                --
+                -- Name: change_set_history change_set_history_pkey; Type: CONSTRAINT; Schema: public; Owner: test
+                --
+
+                ALTER TABLE ONLY public.change_set_history
+                    ADD CONSTRAINT change_set_history_pkey PRIMARY KEY (id);
+
+
+                --
+                -- Name: SCHEMA public; Type: ACL; Schema: -; Owner: test
+                --
+
+                REVOKE USAGE ON SCHEMA public FROM PUBLIC;
+
+
+                --
+                -- PostgreSQL database dump complete
+                --
+
+
+            """.trimIndent()
         }
     }
 })
