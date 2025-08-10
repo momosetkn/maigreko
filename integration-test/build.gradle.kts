@@ -5,8 +5,7 @@ plugins {
 
 dependencies {
     implementation(project(":core"))
-
-    // main
+    implementation(project(":postgresql-dialect"))
     implementation(libs.jdbcPostgresql)
 
     // logging
