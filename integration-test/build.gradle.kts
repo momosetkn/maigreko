@@ -9,6 +9,10 @@ dependencies {
     // main
     implementation(libs.jdbcPostgresql)
 
+    // logging
+    api(libs.bundles.log4j)
+    api(libs.slf4j)
+
     // test
     api(platform(libs.testcontainersBom))
     testImplementation(libs.testcontainersPostgresql)

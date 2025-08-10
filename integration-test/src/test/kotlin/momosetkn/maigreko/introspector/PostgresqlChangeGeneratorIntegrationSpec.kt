@@ -18,6 +18,8 @@ import java.sql.Connection
 import javax.sql.DataSource
 
 class PostgresqlChangeGeneratorIntegrationSpec : FunSpec({
+    val logger = org.slf4j.LoggerFactory.getLogger(PostgresqlChangeGeneratorIntegrationSpec::class.java)
+
     lateinit var connection: Connection
     lateinit var dataSource: DataSource
     lateinit var postgresqlInfoService: PostgresqlInfoService
@@ -27,7 +29,7 @@ class PostgresqlChangeGeneratorIntegrationSpec : FunSpec({
         PostgresqlDatabase.start()
         val container = PostgresqlDatabase.startedContainer
         dataSource = PostgresDataSource(container)
-        println("Connected to PostgreSQL: ${container.jdbcUrl}")
+        logger.info("Connected to PostgreSQL: ${container.jdbcUrl}")
         connection = dataSource.connection
         postgresqlInfoService = PostgresqlInfoService(dataSource)
         changeGenerator = PostgresqlChangeGenerator()
@@ -43,8 +45,8 @@ class PostgresqlChangeGeneratorIntegrationSpec : FunSpec({
     }
 
     afterTest {
-        println("Generated DDL:")
-        println(PostgresqlDatabase.generateDdl())
+        logger.info("Generated DDL:")
+        logger.info(PostgresqlDatabase.generateDdl())
     }
 
     fun subject(

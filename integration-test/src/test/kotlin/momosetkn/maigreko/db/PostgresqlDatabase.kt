@@ -6,6 +6,8 @@ import java.sql.DriverManager
 import kotlin.use
 
 object PostgresqlDatabase {
+    private val logger = org.slf4j.LoggerFactory.getLogger(PostgresqlDatabase::class.java)
+
     private var container: PostgreSQLContainer<*>? = null
     val startedContainer
         get() = requireNotNull(container) {
@@ -19,7 +21,7 @@ object PostgresqlDatabase {
         val launchTime =
             kotlin.system.measureTimeMillis { startedContainer.start() }
 
-        println("database started in $launchTime ms")
+        logger.info("database started in $launchTime ms")
     }
 
     fun executeCommand(vararg args: String): Container.ExecResult {
@@ -28,7 +30,7 @@ object PostgresqlDatabase {
 
     fun stop() {
         container?.stop()
-        println("database stop")
+        logger.info("database stop")
     }
 
     @Synchronized

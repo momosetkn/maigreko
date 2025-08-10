@@ -15,6 +15,8 @@ import momosetkn.maigreko.introspector.infras.PostgresqlColumnDetail
 import momosetkn.maigreko.introspector.infras.PostgresqlConstraintDetail
 
 class PostgresqlChangeGeneratorSpec : FunSpec({
+    val logger = org.slf4j.LoggerFactory.getLogger(PostgresqlChangeGeneratorSpec::class.java)
+
     val generator = PostgresqlChangeGenerator()
 
     context("generateChangesFromColumns") {
@@ -91,9 +93,9 @@ class PostgresqlChangeGeneratorSpec : FunSpec({
             val (changes, _createSequences) = generator.generateChangesFromColumns(tableName, columnDetails)
 
             // Debug
-            println("[DEBUG_LOG] Generated changes: ${changes.size}")
+            logger.debug("Generated changes: ${changes.size}")
             changes.forEachIndexed { index, change ->
-                println("[DEBUG_LOG] Change $index: $change")
+                logger.debug("Change $index: $change")
             }
 
             // Then
@@ -349,13 +351,13 @@ class PostgresqlChangeGeneratorSpec : FunSpec({
             val changes = generator.generateChanges(tableName, columnDetails, constraintDetails)
 
             // Debug
-            println("[DEBUG_LOG] Generated changes: ${changes.size}")
+            logger.debug("Generated changes: ${changes.size}")
             changes.forEachIndexed { index, change ->
-                println("[DEBUG_LOG] Change $index: $change")
+                logger.debug("Change $index: $change")
             }
-            println("[DEBUG_LOG] CreateTable count: ${changes.filterIsInstance<CreateTable>().size}")
-            println("[DEBUG_LOG] AddNotNullConstraint count: ${changes.filterIsInstance<AddNotNullConstraint>().size}")
-            println("[DEBUG_LOG] AddForeignKey count: ${changes.filterIsInstance<AddForeignKey>().size}")
+            logger.debug("CreateTable count: ${changes.filterIsInstance<CreateTable>().size}")
+            logger.debug("AddNotNullConstraint count: ${changes.filterIsInstance<AddNotNullConstraint>().size}")
+            logger.debug("AddForeignKey count: ${changes.filterIsInstance<AddForeignKey>().size}")
 
             // Then
             // We can't fully test the order without having both tables' CreateTable changes,

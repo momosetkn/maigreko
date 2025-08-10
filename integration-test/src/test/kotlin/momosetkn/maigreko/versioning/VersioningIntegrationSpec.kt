@@ -14,6 +14,8 @@ import momosetkn.maigreko.sql.PostgreMigrateEngine
 import javax.sql.DataSource
 
 class VersioningIntegrationSpec : FunSpec({
+    val logger = org.slf4j.LoggerFactory.getLogger(VersioningIntegrationSpec::class.java)
+
     lateinit var versioning: Versioning
     lateinit var dataSource: DataSource
     lateinit var postgreInfoService: PostgresqlInfoService
@@ -31,7 +33,7 @@ class VersioningIntegrationSpec : FunSpec({
     }
 
     afterTest {
-        println(PostgresqlDatabase.generateDdl())
+        logger.info(PostgresqlDatabase.generateDdl())
     }
 
     context("double forward") {

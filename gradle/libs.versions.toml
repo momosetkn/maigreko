@@ -10,6 +10,7 @@ kotlinxCoroutines = "1.9.0"
 kotest = "5.8.0"
 detekt = "1.23.8"
 ktlint = "13.0.0"
+log4j = "2.23.1"
 
 [libraries]
 kotlinGradlePlugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
@@ -42,10 +43,17 @@ komapperDialectH2Jdbc = { module = "org.komapper:komapper-dialect-h2-jdbc" }
 
 ktlintRuleEngineCore = { module = "com.pinterest.ktlint:ktlint-rule-engine-core", version ="1.7.1" }
 
+slf4j = { module ="org.slf4j:slf4j-api", version = "2.0.17" }
+
+log4jApi = { module = "org.apache.logging.log4j:log4j-api", version.ref = "log4j" }
+log4jCore = { module = "org.apache.logging.log4j:log4j-core", version.ref = "log4j" }
+log4jSlf4j = { module = "org.apache.logging.log4j:log4j-slf4j2-impl", version.ref = "log4j" }
+
 # Libraries can be bundled together for easier import
 [bundles]
 kotlinxEcosystem = ["kotlinxDatetime", "kotlinxSerialization", "kotlinxCoroutines"]
 kotest = ["kotestEngine", "kotestRunner"]
+log4j = ["log4jApi", "log4jCore", "log4jSlf4j"]
 
 [plugins]
 kotlinJvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
