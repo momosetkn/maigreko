@@ -43,7 +43,7 @@ object PostgresqlDatabase {
     private fun getConnection() =
         DriverManager.getConnection(startedContainer.jdbcUrl, startedContainer.username, startedContainer.password)
 
-    fun generateDdl(): String? {
+    fun generateDdl(): String {
         val commandResult = executeCommand(
             "pg_dump",
             "-h",

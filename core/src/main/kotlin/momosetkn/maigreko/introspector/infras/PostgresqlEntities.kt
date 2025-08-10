@@ -10,6 +10,16 @@ data class PostgresqlColumnDetail(
     val unique: String,
     val foreignTable: String?,
     val foreignColumn: String?,
+    val generatedKind: String? = null,
+    val identityGeneration: String? = null,
+    val ownedSequence: String? = null,
+    val sequenceDataType: String? = null,
+    val startValue: Long? = null,
+    val incrementBy: Long? = null,
+    val minValue: Long? = null,
+    val maxValue: Long? = null,
+    val cacheSize: Long? = null,
+    val cycle: Boolean? = null,
 )
 
 data class PostgresqlConstraintDetail(

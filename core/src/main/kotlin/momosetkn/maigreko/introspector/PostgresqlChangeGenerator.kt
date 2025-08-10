@@ -1,14 +1,13 @@
 package momosetkn.maigreko.introspector
 
 import momosetkn.maigreko.change.AddForeignKey
-import momosetkn.maigreko.change.AddNotNullConstraint
-import momosetkn.maigreko.change.AddUniqueConstraint
 import momosetkn.maigreko.change.Change
 import momosetkn.maigreko.change.Column
 import momosetkn.maigreko.change.ColumnConstraint
 import momosetkn.maigreko.change.CreateSequence
 import momosetkn.maigreko.change.CreateTable
 import momosetkn.maigreko.change.ForeignKeyAction
+import momosetkn.maigreko.change.PostgresqlColumnIndividualObject
 import momosetkn.maigreko.introspector.infras.PostgresqlColumnDetail
 import momosetkn.maigreko.introspector.infras.PostgresqlConstraintDetail
 import momosetkn.maigreko.introspector.infras.PostgresqlSequenceDetail
@@ -22,15 +21,15 @@ class PostgresqlChangeGenerator {
      *
      * @param tableName The name of the table
      * @param columnDetails List of column details
-     * @return List of Change objects
+     * @return List of Change objects, List<Change>
      */
     fun generateChangesFromColumns(
         tableName: String,
         columnDetails: List<PostgresqlColumnDetail>
-    ): List<Change> {
+    ): Pair<List<Change>, List<String>> {
         // Create columns for CreateTable change
         val columns = columnDetails.map { columnDetail ->
-            Column(
+            Column.build(
                 name = columnDetail.columnName,
                 type = columnDetail.type,
                 defaultValue = columnDetail.columnDefault,
@@ -38,6 +37,14 @@ class PostgresqlChangeGenerator {
                     nullable = columnDetail.notNull == "NO",
                     primaryKey = columnDetail.primaryKey == "YES",
                     unique = columnDetail.unique == "YES"
+                ),
+                autoIncrement = columnDetail.ownedSequence != null, // auto generate sequence
+                identityGeneration = columnDetail.identityGeneration,
+                startValue = columnDetail.startValue,
+                incrementBy = columnDetail.incrementBy,
+                cycle = columnDetail.cycle,
+                individualObject = PostgresqlColumnIndividualObject(
+                    columnDetail.generatedKind?.let { PostgresqlColumnIndividualObject.GeneratedKind.fromSql(it) }
                 )
             )
         }
@@ -48,61 +55,81 @@ class PostgresqlChangeGenerator {
             columns = columns
         )
 
-        // Generate NotNull constraints
-        val notNullConstraints = columnDetails
-            .filter { it.notNull == "YES" }
-            .map { columnDetail ->
-                AddNotNullConstraint(
-                    tableName = tableName,
-                    columnName = columnDetail.columnName,
-                    columnDataType = columnDetail.type
-                )
-            }
+//        // Generate NotNull constraints
+//        val notNullConstraints = columnDetails
+//            .filter { it.notNull == "YES" }
+//            .map { columnDetail ->
+//                AddNotNullConstraint(
+//                    tableName = tableName,
+//                    columnName = columnDetail.columnName,
+//                    columnDataType = columnDetail.type
+//                )
+//            }
 
-        // Generate Unique constraints
-        val uniqueConstraints = columnDetails
-            .filter { it.unique == "YES" }
-            .map { columnDetail ->
-                AddUniqueConstraint(
-                    constraintName = "${tableName}_${columnDetail.columnName}_unique",
-                    tableName = tableName,
-                    columnNames = listOf(columnDetail.columnName)
-                )
-            }
+//        // Generate Unique constraints
+//        val uniqueConstraints = columnDetails
+//            .filter { it.unique == "YES" }
+//            .map { columnDetail ->
+//                AddUniqueConstraint(
+//                    constraintName = "${tableName}_${columnDetail.columnName}_unique",
+//                    tableName = tableName,
+//                    columnNames = listOf(columnDetail.columnName)
+//                )
+//            }
 
-        // Generate Sequence changes from column defaults
+        val createSequenceNames = columnDetails
+            .mapNotNull {
+                findSequenceName(it.columnDefault)
+                    // Generate Sequence changes from column defaults
+                    ?: it.ownedSequence?.split(".")?.last()
+            }
         val sequenceChanges = columnDetails
-            .mapNotNull { columnDetail ->
-                extractSequenceFromColumnDefault(columnDetail.columnDefault)
+            .filter { it.ownedSequence == null } // skip when auto-generated sequences
+            .mapNotNull {
+                extractSequenceFromColumnDefault(it)
             }
 
         // Combine all changes
-        return listOf(createTableChange) + notNullConstraints + uniqueConstraints + sequenceChanges
+        return Pair(
+            listOf(createTableChange) + sequenceChanges,
+            createSequenceNames
+        )
     }
 
     /**
-     * Extract sequence information from column default value
+     * Extracts a `CreateSequence` object from the default value of a PostgreSQL column, if it contains a sequence.
      *
-     * @param columnDefault The column default value
-     * @return CreateSequence change or null if the default is not a nextval expression
+     * @param columnDetail The details of the PostgreSQL column, including its default value.
+     * @return A `CreateSequence` object if a sequence is derived from the column's default value; otherwise, null.
      */
-    private fun extractSequenceFromColumnDefault(columnDefault: String?): CreateSequence? {
-        if (columnDefault == null || !columnDefault.contains("nextval")) {
+    private fun extractSequenceFromColumnDefault(columnDetail: PostgresqlColumnDetail): CreateSequence? {
+        val name = findSequenceName(columnDetail.columnDefault)
+        return name?.let {
+            CreateSequence(
+                sequenceName = name,
+                dataType = columnDetail.type,
+                generatedKind = columnDetail.generatedKind,
+                identityGeneration = columnDetail.identityGeneration
+            )
+        }
+    }
+
+    /**
+     * Extracts the sequence name from the default value of a PostgreSQL column, if it contains a sequence.
+     *
+     * @param columnDefault The default value of the PostgreSQL column, which may include a sequence reference.
+     * @return The name of the sequence if it is found in the column's default value; otherwise, null.
+     */
+    private fun findSequenceName(columnDefault: String?): String? {
+        if (columnDefault == null) {
             return null
         }
 
         // Extract sequence name from nextval expression
-        // Format is typically: nextval('sequence_name'::regclass)
-        val sequenceNameRegex = "nextval\\('([^']+)'::regclass\\)".toRegex()
         val matchResult = sequenceNameRegex.find(columnDefault)
 
         return matchResult?.let {
-            val sequenceName = it.groupValues[1]
-            CreateSequence(
-                sequenceName = sequenceName,
-                // Default values will be filled in by the database
-                dataType = "bigint"
-            )
+            it.groupValues[1]
         }
     }
 
@@ -173,24 +200,27 @@ class PostgresqlChangeGenerator {
         tableInfoss: List<PostgresqlTableInfo>,
         sequenceDetails: List<PostgresqlSequenceDetail> = emptyList(),
     ): List<Change> {
+        val allCreateSequenceNames = mutableSetOf<String>()
         // Generate changes for each table
         val tableChanges = tableInfoss.flatMap { tableInfo ->
             val columns = tableInfo.columnDetails
             val constraints = tableInfo.columnConstraints
-            generateChangesFromColumns(tableInfo.tableName, columns) + generateChangesFromConstraints(constraints)
+            val (changes, createSequenceNames) = generateChangesFromColumns(tableInfo.tableName, columns)
+            allCreateSequenceNames += createSequenceNames
+            changes + generateChangesFromConstraints(constraints)
         }
 
-        val tableChangeSequenceNames = tableChanges
-            .mapNotNull {
-                val createSequence = it as? CreateSequence
-                createSequence?.sequenceName
-            }
+//        val tableChangeSequenceNames = tableChanges
+//            .mapNotNull {
+//                val createSequence = it as? CreateSequence
+//                createSequence?.sequenceName
+//            }
 
         // Add sequence changes
         val sequenceChanges = generateChangesFromSequences(sequenceDetails)
         val filteredSequenceChanges = sequenceChanges
             .filter { sequenceChange ->
-                sequenceChange.sequenceName !in tableChangeSequenceNames
+                sequenceChange.sequenceName !in allCreateSequenceNames
             }
 
         // Combine changes and sort based on dependencies
@@ -244,6 +274,7 @@ class PostgresqlChangeGenerator {
 //        // Combine all changes in the correct order
 //        return sortedCreateTables + validForeignKeys + otherChanges
 
+        @Suppress("MagicNumber")
         fun getSortKey1(c: Change) = when (c) {
             is CreateSequence -> 100
             is CreateTable -> 200
@@ -345,5 +376,10 @@ class PostgresqlChangeGenerator {
                 cacheSize = sequenceDetail.cacheSize
             )
         }
+    }
+
+    companion object {
+        // Format is typically: nextval('sequence_name'::regclass)
+        private val sequenceNameRegex = Regex("nextval\\('(?<sequenceName>.+)'::regclass\\)")
     }
 }

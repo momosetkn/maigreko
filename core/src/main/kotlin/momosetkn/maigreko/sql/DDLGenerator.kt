@@ -42,9 +42,9 @@ interface DDLGenerator {
     fun addUniqueConstraint(addUniqueConstraint: AddUniqueConstraint): String
 
     fun dropUniqueConstraint(addUniqueConstraint: AddUniqueConstraint): String
-    
+
     fun createSequence(createSequence: CreateSequence): String
-    
+
     fun dropSequence(createSequence: CreateSequence): String
 
     fun reverseModifyDataType(modifyDataType: ModifyDataType): String {

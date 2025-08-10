@@ -72,6 +72,16 @@ class VersioningIntegrationSpec : FunSpec({
                 unique = "NO",
                 foreignTable = null,
                 foreignColumn = null,
+                generatedKind = null,
+                identityGeneration = null,
+                ownedSequence = null,
+                sequenceDataType = null,
+                startValue = null,
+                incrementBy = null,
+                minValue = null,
+                maxValue = null,
+                cacheSize = null,
+                cycle = null
             )
 
             tableInfo.columnConstraints.size shouldBe 0

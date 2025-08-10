@@ -1,0 +1,8 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>LongParameterList:PostgresqlChangeGenerator.kt$PostgresqlChangeGenerator$( tableName: String, tableCreationMap: Map&lt;String, CreateTable&gt;, dependencyMap: Map&lt;String, Set&lt;String&gt;&gt;, visited: MutableSet&lt;String&gt;, visiting: MutableSet&lt;String&gt;, result: MutableList&lt;String&gt; )</ID>
+    <ID>UseCheckOrError:PostgresqlChangeGenerator.kt$PostgresqlChangeGenerator$throw IllegalStateException("Circular dependency detected involving table: $tableName")</ID>
+  </CurrentIssues>
+</SmellBaseline>

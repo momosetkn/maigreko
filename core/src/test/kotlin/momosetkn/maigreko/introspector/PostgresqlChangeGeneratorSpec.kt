@@ -5,10 +5,12 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import momosetkn.maigreko.change.AddForeignKey
 import momosetkn.maigreko.change.AddNotNullConstraint
-import momosetkn.maigreko.change.AddUniqueConstraint
-import momosetkn.maigreko.change.CreateSequence
+import momosetkn.maigreko.change.Column
+import momosetkn.maigreko.change.Column.IdentityGeneration
+import momosetkn.maigreko.change.ColumnConstraint
 import momosetkn.maigreko.change.CreateTable
 import momosetkn.maigreko.change.ForeignKeyAction
+import momosetkn.maigreko.change.PostgresqlColumnIndividualObject
 import momosetkn.maigreko.introspector.infras.PostgresqlColumnDetail
 import momosetkn.maigreko.introspector.infras.PostgresqlConstraintDetail
 
@@ -29,7 +31,17 @@ class PostgresqlChangeGeneratorSpec : FunSpec({
                     primaryKey = "YES",
                     unique = "NO",
                     foreignTable = null,
-                    foreignColumn = null
+                    foreignColumn = null,
+                    generatedKind = "ALWAYS",
+                    identityGeneration = "BY DEFAULT",
+                    ownedSequence = "users_id_seq",
+                    sequenceDataType = "bigint",
+                    startValue = 1L,
+                    incrementBy = 1L,
+                    minValue = null,
+                    maxValue = null,
+                    cacheSize = null,
+                    cycle = null
                 ),
                 PostgresqlColumnDetail(
                     tableName = tableName,
@@ -40,7 +52,17 @@ class PostgresqlChangeGeneratorSpec : FunSpec({
                     primaryKey = "NO",
                     unique = "YES",
                     foreignTable = null,
-                    foreignColumn = null
+                    foreignColumn = null,
+                    generatedKind = null,
+                    identityGeneration = null,
+                    ownedSequence = null,
+                    sequenceDataType = null,
+                    startValue = null,
+                    incrementBy = null,
+                    minValue = null,
+                    maxValue = null,
+                    cacheSize = null,
+                    cycle = null
                 ),
                 PostgresqlColumnDetail(
                     tableName = tableName,
@@ -51,12 +73,22 @@ class PostgresqlChangeGeneratorSpec : FunSpec({
                     primaryKey = "NO",
                     unique = "NO",
                     foreignTable = null,
-                    foreignColumn = null
+                    foreignColumn = null,
+                    generatedKind = null,
+                    identityGeneration = null,
+                    ownedSequence = null,
+                    sequenceDataType = null,
+                    startValue = null,
+                    incrementBy = null,
+                    minValue = null,
+                    maxValue = null,
+                    cacheSize = null,
+                    cycle = null
                 )
             )
 
             // When
-            val changes = generator.generateChangesFromColumns(tableName, columnDetails)
+            val (changes, _createSequences) = generator.generateChangesFromColumns(tableName, columnDetails)
 
             // Debug
             println("[DEBUG_LOG] Generated changes: ${changes.size}")
@@ -65,25 +97,67 @@ class PostgresqlChangeGeneratorSpec : FunSpec({
             }
 
             // Then
-            changes.size shouldBe 6 // 1 CreateTable + 4 constraints (3 NotNull + 1 Unique) + 1 Sequence
+            changes.size shouldBe 1 // 1 CreateTable + 4 constraints (3 NotNull + 1 Unique) + 1 Sequence
 
             // Verify CreateTable
             val createTable = changes.filterIsInstance<CreateTable>().first()
             createTable.tableName shouldBe "users"
             createTable.columns.size shouldBe 3
 
-            // Verify column constraints
-            val notNullConstraints = changes.filterIsInstance<AddNotNullConstraint>()
-            notNullConstraints.size shouldBe 3
-
-            val uniqueConstraints = changes.filterIsInstance<AddUniqueConstraint>()
-            uniqueConstraints.size shouldBe 1
-            uniqueConstraints.first().columnNames shouldBe listOf("username")
-
-            // Verify sequence creation from column default
-            val sequenceChanges = changes.filterIsInstance<CreateSequence>()
-            sequenceChanges.size shouldBe 1
-            sequenceChanges.first().sequenceName shouldBe "users_id_seq"
+            createTable.columns[0] shouldBe Column(
+                name = "id",
+                type = "bigint",
+                defaultValue = "nextval('users_id_seq'::regclass)",
+                autoIncrement = true,
+                identityGeneration = IdentityGeneration.BY_DEFAULT,
+                columnConstraint = ColumnConstraint(
+                    nullable = false,
+                    primaryKey = true,
+                    unique = false,
+                ),
+                startValue = 1L,
+                incrementBy = 1L,
+                cycle = null,
+                individualObject = PostgresqlColumnIndividualObject(
+                    generatedKind = null
+                )
+            )
+            createTable.columns[1] shouldBe Column(
+                name = "username",
+                type = "character varying(255)",
+                defaultValue = null,
+                autoIncrement = false,
+                identityGeneration = null,
+                columnConstraint = ColumnConstraint(
+                    nullable = false,
+                    primaryKey = false,
+                    unique = true,
+                ),
+                startValue = null,
+                incrementBy = null,
+                cycle = null,
+                individualObject = PostgresqlColumnIndividualObject(
+                    generatedKind = null
+                )
+            )
+            createTable.columns[2] shouldBe Column(
+                name = "email",
+                type = "character varying(255)",
+                defaultValue = null,
+                autoIncrement = false,
+                identityGeneration = null,
+                columnConstraint = ColumnConstraint(
+                    nullable = false,
+                    primaryKey = false,
+                    unique = false,
+                ),
+                startValue = null,
+                incrementBy = null,
+                cycle = null,
+                individualObject = PostgresqlColumnIndividualObject(
+                    generatedKind = null
+                )
+            )
         }
     }
 
@@ -287,7 +361,7 @@ class PostgresqlChangeGeneratorSpec : FunSpec({
             // We can't fully test the order without having both tables' CreateTable changes,
             // but we can verify that the changes were generated
             changes.filterIsInstance<CreateTable>().size shouldBe 1
-            changes.filterIsInstance<AddNotNullConstraint>().size shouldBe 2
+            changes.filterIsInstance<AddNotNullConstraint>().size shouldBe 0
             // Foreign key is not included because the referenced table (roles) is not in the changes list
             // This is because our dependency sorting logic requires both tables to be present
         }
