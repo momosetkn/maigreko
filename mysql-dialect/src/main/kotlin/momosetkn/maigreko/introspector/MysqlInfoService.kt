@@ -37,7 +37,8 @@ class MysqlInfoService(
     fun fetchAll(): Pair<List<MysqlTableInfo>, List<MysqlSequenceDetail>> {
         // MySQL 8.0+ supports sequences, but we'll get them from the repository
         // which will handle compatibility with older versions
-        val sequenceDetails = emptyList<MysqlSequenceDetail>()
+        val exclude = Versioning.VERSIONING_SEQUENCE_NAME
+        val sequenceDetails = mysqlInfoRepository.getSequenceDetails(exclude)
         return Pair(fetchMysqlTableInfo(), sequenceDetails)
     }
 }

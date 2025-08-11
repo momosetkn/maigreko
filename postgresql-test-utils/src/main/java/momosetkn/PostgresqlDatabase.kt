@@ -1,8 +1,9 @@
-package momosetkn.maigreko.db
+package momosetkn
 
 import org.testcontainers.containers.Container
 import org.testcontainers.containers.PostgreSQLContainer
 import java.sql.DriverManager
+import kotlin.system.measureTimeMillis
 import kotlin.use
 
 object PostgresqlDatabase {
@@ -19,7 +20,7 @@ object PostgresqlDatabase {
             org.testcontainers.utility.DockerImageName.parse("postgres:15.8")
         container = PostgreSQLContainer(image)
         val launchTime =
-            kotlin.system.measureTimeMillis { startedContainer.start() }
+            measureTimeMillis { startedContainer.start() }
 
         logger.info("database started in $launchTime ms")
     }

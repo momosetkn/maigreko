@@ -4,8 +4,8 @@ import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
-import momosetkn.maigreko.db.PostgresDataSource
-import momosetkn.maigreko.db.PostgresqlDatabase
+import momosetkn.JdbcDatabaseContainerDataSource
+import momosetkn.PostgresqlDatabase
 import java.io.PrintWriter
 import java.sql.Connection
 import java.util.logging.Logger
@@ -21,7 +21,7 @@ class IntrospectorFactoryIntegrationSpec : FunSpec({
     context("postgresql") {
         PostgresqlDatabase.start()
         val container = PostgresqlDatabase.startedContainer
-        val postgresDataSource = PostgresDataSource(container)
+        val jdbcDatabaseContainerDataSource = JdbcDatabaseContainerDataSource(container)
         logger.info("Connected to PostgreSQL: ${container.jdbcUrl}")
 
         afterSpec {
@@ -30,7 +30,7 @@ class IntrospectorFactoryIntegrationSpec : FunSpec({
 
         test("IntrospectorFactory should load PostgresqlIntrospector for 'postgresql' dialect") {
             // Act
-            val introspector = IntrospectorFactory.create("postgresql", postgresDataSource)
+            val introspector = IntrospectorFactory.create("postgresql", jdbcDatabaseContainerDataSource)
 
             // Assert
             introspector.shouldBeInstanceOf<PostgresqlIntrospector>()
@@ -38,7 +38,7 @@ class IntrospectorFactoryIntegrationSpec : FunSpec({
 
         test("IntrospectorFactory should load PostgresqlIntrospector for 'postgre' dialect (partial match)") {
             // Act
-            val introspector = IntrospectorFactory.create("postgre", postgresDataSource)
+            val introspector = IntrospectorFactory.create("postgre", jdbcDatabaseContainerDataSource)
 
             // Assert
             introspector.shouldBeInstanceOf<PostgresqlIntrospector>()
@@ -46,7 +46,7 @@ class IntrospectorFactoryIntegrationSpec : FunSpec({
 
         test("IntrospectorFactory should automatically detect PostgreSQL dialect from database metadata") {
             // Act
-            val introspector = IntrospectorFactory.create(postgresDataSource)
+            val introspector = IntrospectorFactory.create(jdbcDatabaseContainerDataSource)
 
             // Assert
             introspector.shouldBeInstanceOf<PostgresqlIntrospector>()
@@ -54,7 +54,7 @@ class IntrospectorFactoryIntegrationSpec : FunSpec({
 
         test("IntrospectorFactory.createFirst should load the first available Introspector") {
             // Act
-            val introspector = IntrospectorFactory.createFirst(postgresDataSource)
+            val introspector = IntrospectorFactory.createFirst(jdbcDatabaseContainerDataSource)
 
             // Assert
             introspector.shouldBeInstanceOf<Introspector>()

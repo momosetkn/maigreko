@@ -6,15 +6,16 @@ plugins {
 dependencies {
     implementation(project(":core"))
     implementation(project(":postgresql-dialect"))
-    implementation(libs.jdbcPostgresql)
 
     // logging
     api(libs.bundles.log4j)
     api(libs.slf4j)
 
     // test
-    api(platform(libs.testcontainersBom))
-    testImplementation(libs.testcontainersPostgresql)
-    runtimeOnly(libs.jdbcPostgresql)
     testImplementation(libs.bundles.kotest)
+    testApi(platform(libs.testcontainersBom))
+    testImplementation(libs.testcontainersPostgresql)
+    testRuntimeOnly(libs.jdbcPostgresql)
+    testImplementation(project(":postgresql-test-utils"))
+    testImplementation(project(":test-utils"))
 }

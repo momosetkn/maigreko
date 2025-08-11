@@ -4,6 +4,8 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldContainAll
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
+import momosetkn.JdbcDatabaseContainerDataSource
+import momosetkn.PostgresqlDatabase
 import momosetkn.maigreko.change.AddForeignKey
 import momosetkn.maigreko.change.AddNotNullConstraint
 import momosetkn.maigreko.change.AddUniqueConstraint
@@ -11,8 +13,6 @@ import momosetkn.maigreko.change.Change
 import momosetkn.maigreko.change.Column
 import momosetkn.maigreko.change.CreateSequence
 import momosetkn.maigreko.change.CreateTable
-import momosetkn.maigreko.db.PostgresDataSource
-import momosetkn.maigreko.db.PostgresqlDatabase
 import momosetkn.maigreko.sql.PostgreMigrateEngine
 import java.sql.Connection
 import javax.sql.DataSource
@@ -28,7 +28,7 @@ class PostgresqlChangeGeneratorIntegrationSpec : FunSpec({
     beforeSpec {
         PostgresqlDatabase.start()
         val container = PostgresqlDatabase.startedContainer
-        dataSource = PostgresDataSource(container)
+        dataSource = JdbcDatabaseContainerDataSource(container)
         logger.info("Connected to PostgreSQL: ${container.jdbcUrl}")
         connection = dataSource.connection
         postgresqlInfoService = PostgresqlInfoService(dataSource)

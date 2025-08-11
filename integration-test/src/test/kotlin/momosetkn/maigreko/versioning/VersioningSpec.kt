@@ -2,12 +2,12 @@ package momosetkn.maigreko.versioning
 
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
+import momosetkn.JdbcDatabaseContainerDataSource
+import momosetkn.PostgresqlDatabase
 import momosetkn.maigreko.change.ChangeSet
 import momosetkn.maigreko.change.Column
 import momosetkn.maigreko.change.ColumnConstraint
 import momosetkn.maigreko.change.CreateTable
-import momosetkn.maigreko.db.PostgresDataSource
-import momosetkn.maigreko.db.PostgresqlDatabase
 import momosetkn.maigreko.sql.PostgreMigrateEngine
 
 class VersioningSpec : FunSpec({
@@ -17,7 +17,7 @@ class VersioningSpec : FunSpec({
     beforeSpec {
         PostgresqlDatabase.start()
         val container = PostgresqlDatabase.startedContainer
-        dataSource = PostgresDataSource(container)
+        dataSource = JdbcDatabaseContainerDataSource(container)
         versioning = Versioning(dataSource, PostgreMigrateEngine)
     }
 

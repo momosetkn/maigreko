@@ -1,14 +1,15 @@
-package momosetkn.maigreko.db
+package momosetkn
 
-import org.testcontainers.containers.PostgreSQLContainer
+import org.testcontainers.containers.JdbcDatabaseContainer
 import java.io.PrintWriter
 import java.sql.Connection
 import java.sql.DriverManager
 import java.util.logging.Logger
+import javax.sql.DataSource
 
-class PostgresDataSource(
-    private val container: PostgreSQLContainer<*>,
-) : javax.sql.DataSource {
+class JdbcDatabaseContainerDataSource(
+    private val container: JdbcDatabaseContainer<*>,
+) : DataSource {
     override fun getConnection(): Connection {
         val conn = DriverManager.getConnection(container.jdbcUrl, container.username, container.password)
         return conn

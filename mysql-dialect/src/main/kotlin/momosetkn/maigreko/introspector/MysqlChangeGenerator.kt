@@ -7,6 +7,7 @@ import momosetkn.maigreko.change.ColumnConstraint
 import momosetkn.maigreko.change.CreateSequence
 import momosetkn.maigreko.change.CreateTable
 import momosetkn.maigreko.change.ForeignKeyAction
+import momosetkn.maigreko.change.MysqlColumnIndividualObject
 import momosetkn.maigreko.introspector.infras.MysqlColumnDetail
 import momosetkn.maigreko.introspector.infras.MysqlConstraintDetail
 import momosetkn.maigreko.introspector.infras.MysqlSequenceDetail
@@ -37,7 +38,8 @@ class MysqlChangeGenerator {
                     primaryKey = columnDetail.primaryKey == "YES",
                     unique = columnDetail.unique == "YES"
                 ),
-                autoIncrement = columnDetail.generatedKind == "AUTO_INCREMENT", // MySQL uses AUTO_INCREMENT
+                individualObject = MysqlColumnIndividualObject.build(columnDetail.generatedKind),
+                autoIncrement = columnDetail.generatedKind == "AUTO_INCREMENT", // For backward compatibility
                 identityGeneration = columnDetail.identityGeneration,
                 startValue = columnDetail.startValue,
                 incrementBy = columnDetail.incrementBy,

@@ -11,4 +11,11 @@ dependencies {
 
     // test
     testImplementation(libs.bundles.kotest)
+
+    testApi(platform(libs.testcontainersBom))
+    testImplementation(libs.testcontainersMysql)
+    testRuntimeOnly(libs.jdbcMysql)
+    testImplementation(libs.bundles.kotest)
+    testImplementation(project(":mysql-test-utils"))
+    testImplementation(project(":test-utils"))
 }

@@ -34,6 +34,7 @@ testcontainersMysql = { module = "org.testcontainers:mysql" }
 testcontainersOracle = { module = "org.testcontainers:oracle-xe" }
 testcontainersPostgresql = { module = "org.testcontainers:postgresql" }
 testcontainersSqlserver = { module = "org.testcontainers:mssqlserver" }
+testcontainersJdbc = { module = "org.testcontainers:jdbc" }
 
 komapperPlatform = { module = "org.komapper:komapper-platform", version = "5.4.0" }
 komapperStarterJdbc = { module = "org.komapper:komapper-starter-jdbc" }
