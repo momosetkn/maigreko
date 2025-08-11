@@ -1,6 +1,6 @@
 package momosetkn.maigreko.sql
 
-internal object StringUtils {
+object StringUtils {
     fun String.normalizeText(): String {
         return this
             .collapseNewlines()

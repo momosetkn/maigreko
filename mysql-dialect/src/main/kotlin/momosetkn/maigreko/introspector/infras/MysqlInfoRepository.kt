@@ -94,6 +94,7 @@ internal class MysqlInfoRepository(
                     INFORMATION_SCHEMA.KEY_COLUMN_USAGE k
                     ON tc.CONSTRAINT_NAME = k.CONSTRAINT_NAME
                     AND tc.TABLE_SCHEMA = k.TABLE_SCHEMA
+                    AND tc.TABLE_NAME = k.TABLE_NAME
                 WHERE
                     tc.CONSTRAINT_TYPE = 'PRIMARY KEY'
                     AND tc.TABLE_SCHEMA = DATABASE()
@@ -108,6 +109,7 @@ internal class MysqlInfoRepository(
                     INFORMATION_SCHEMA.KEY_COLUMN_USAGE k
                     ON tc.CONSTRAINT_NAME = k.CONSTRAINT_NAME
                     AND tc.TABLE_SCHEMA = k.TABLE_SCHEMA
+                    AND tc.TABLE_NAME = k.TABLE_NAME
                 WHERE
                     tc.CONSTRAINT_TYPE = 'UNIQUE'
                     AND tc.TABLE_SCHEMA = DATABASE()
