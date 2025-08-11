@@ -66,7 +66,7 @@ internal class MysqlInfoRepository(
                 CASE c.IS_NULLABLE WHEN 'NO' THEN 'YES' ELSE 'NO' END as not_null,
                 c.COLUMN_DEFAULT as column_default,
                 CASE WHEN pk.COLUMN_NAME IS NOT NULL THEN 'YES' ELSE 'NO' END as primary_key,
-                CASE WHEN uk.COLUMN_NAME IS NOT NULL THEN 'YES' ELSE 'NO' END as unique,
+                CASE WHEN uk.COLUMN_NAME IS NOT NULL THEN 'YES' ELSE 'NO' END as `unique`,
                 fk.REFERENCED_TABLE_NAME as foreign_table,
                 fk.REFERENCED_COLUMN_NAME as foreign_column,
                 CASE 
@@ -211,75 +211,5 @@ internal class MysqlInfoRepository(
             }
             results
         }
-    }
-
-    /**
-     * Get sequence details from the database (MySQL 8.0+)
-     * 
-     * @param exclude Sequence name to exclude
-     * @return List of sequence details
-     */
-    fun getSequenceDetails(exclude: String): List<MysqlSequenceDetail> {
-        // Check if the INFORMATION_SCHEMA.SEQUENCES table exists (MySQL 8.0+)
-        val checkSequencesTableSql = """
-            SELECT COUNT(*) as count
-            FROM INFORMATION_SCHEMA.TABLES
-            WHERE TABLE_SCHEMA = 'information_schema'
-            AND TABLE_NAME = 'SEQUENCES'
-        """.trimIndent()
-
-        val sequencesTableExists = jdbcExecutor.executeQuery(checkSequencesTableSql) { resultSet ->
-            resultSet.next()
-            resultSet.getInt("count") > 0
-        }
-
-        if (!sequencesTableExists) {
-            return emptyList()
-        }
-
-        val sql = """
-            SELECT 
-                SEQUENCE_NAME as sequencename,
-                SEQUENCE_SCHEMA as sequenceowner,
-                DATA_TYPE as data_type,
-                START_VALUE as start_value,
-                MINIMUM_VALUE as min_value,
-                MAXIMUM_VALUE as max_value,
-                INCREMENT as increment_by,
-                CYCLE_OPTION = 'YES' as cycle,
-                CACHE as cache_size,
-                NULL as last_value
-            FROM 
-                INFORMATION_SCHEMA.SEQUENCES
-            WHERE 
-                SEQUENCE_SCHEMA = DATABASE()
-                AND SEQUENCE_NAME != ?
-        """.trimIndent()
-
-        return jdbcExecutor.executeQuery(sql, exclude) { resultSet ->
-            val results = mutableListOf<MysqlSequenceDetail>()
-            while (resultSet.next()) {
-                results.add(mapSequenceResultSetToEntity(resultSet))
-            }
-            results
-        }
-    }
-
-    /**
-     * Map a result set to a MysqlSequenceDetail entity
-     */
-    private fun mapSequenceResultSetToEntity(resultSet: ResultSet): MysqlSequenceDetail {
-        return MysqlSequenceDetail(
-            sequenceName = resultSet.getString("sequencename"),
-            sequenceOwner = resultSet.getString("sequenceowner"),
-            dataType = resultSet.getString("data_type"),
-            startValue = resultSet.getLong("start_value"),
-            minValue = resultSet.getLong("min_value"),
-            maxValue = resultSet.getLong("max_value"),
-            incrementBy = resultSet.getLong("increment_by"),
-            cycle = resultSet.getBoolean("cycle"),
-            cacheSize = resultSet.getLong("cache_size"),
-            lastValue = if (resultSet.getObject("last_value") == null) null else resultSet.getLong("last_value")
-        )
     }
 }

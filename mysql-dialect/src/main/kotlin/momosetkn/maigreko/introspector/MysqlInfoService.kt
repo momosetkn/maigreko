@@ -3,7 +3,6 @@ package momosetkn.maigreko.introspector
 import momosetkn.maigreko.introspector.infras.MysqlColumnDetail
 import momosetkn.maigreko.introspector.infras.MysqlConstraintDetail
 import momosetkn.maigreko.introspector.infras.MysqlInfoRepository
-import momosetkn.maigreko.introspector.infras.MysqlSequenceDetail
 import momosetkn.maigreko.versioning.Versioning
 import javax.sql.DataSource
 
@@ -12,7 +11,7 @@ class MysqlInfoService(
 ) {
     private val mysqlInfoRepository = MysqlInfoRepository(dataSource)
 
-    fun fetchMysqlTableInfo(): List<MysqlTableInfo> {
+    fun fetchAll(): List<MysqlTableInfo> {
         val excludeTable = Versioning.VERSIONING_TABLE_NAME
         val tableNames = mysqlInfoRepository.getTableList(excludeTable)
 
@@ -34,13 +33,7 @@ class MysqlInfoService(
         }
     }
 
-    fun fetchAll(): Pair<List<MysqlTableInfo>, List<MysqlSequenceDetail>> {
-        // MySQL 8.0+ supports sequences, but we'll get them from the repository
-        // which will handle compatibility with older versions
-        val exclude = Versioning.VERSIONING_SEQUENCE_NAME
-        val sequenceDetails = mysqlInfoRepository.getSequenceDetails(exclude)
-        return Pair(fetchMysqlTableInfo(), sequenceDetails)
-    }
+    // MySQL not supports sequences.
 }
 
 data class MysqlTableInfo(

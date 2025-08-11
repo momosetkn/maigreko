@@ -31,16 +31,3 @@ data class MysqlConstraintDetail(
     val onUpdate: String,
     val onDelete: String,
 )
-
-data class MysqlSequenceDetail(
-    val sequenceName: String,
-    val sequenceOwner: String?,
-    val dataType: String?,
-    val startValue: Long,
-    val minValue: Long,
-    val maxValue: Long,
-    val incrementBy: Long,
-    val cycle: Boolean,
-    val cacheSize: Long?,
-    val lastValue: Long?,
-)

@@ -4,13 +4,11 @@ import momosetkn.maigreko.change.AddForeignKey
 import momosetkn.maigreko.change.Change
 import momosetkn.maigreko.change.Column
 import momosetkn.maigreko.change.ColumnConstraint
-import momosetkn.maigreko.change.CreateSequence
 import momosetkn.maigreko.change.CreateTable
 import momosetkn.maigreko.change.ForeignKeyAction
 import momosetkn.maigreko.change.MysqlColumnIndividualObject
 import momosetkn.maigreko.introspector.infras.MysqlColumnDetail
 import momosetkn.maigreko.introspector.infras.MysqlConstraintDetail
-import momosetkn.maigreko.introspector.infras.MysqlSequenceDetail
 
 /**
  * Generates Change objects from MySQL database information
@@ -101,42 +99,15 @@ class MysqlChangeGenerator {
     }
 
     /**
-     * Generate sequence changes from sequence details
-     * Note: MySQL 8.0+ supports sequences, but older versions don't
-     *
-     * @param sequenceDetails List of sequence details
-     * @return List of CreateSequence changes
-     */
-    fun generateSequenceChanges(
-        sequenceDetails: List<MysqlSequenceDetail>
-    ): List<CreateSequence> {
-        return sequenceDetails.map { sequenceDetail ->
-            CreateSequence(
-                sequenceName = sequenceDetail.sequenceName,
-                dataType = sequenceDetail.dataType,
-                startValue = sequenceDetail.startValue,
-                minValue = sequenceDetail.minValue,
-                maxValue = sequenceDetail.maxValue,
-                incrementBy = sequenceDetail.incrementBy,
-                cycle = sequenceDetail.cycle,
-                cacheSize = sequenceDetail.cacheSize
-            )
-        }
-    }
-
-    /**
      * Generate all changes from table info and sequence details
      *
      * @param tableInfos List of table info
-     * @param sequenceDetails List of sequence details
      * @return List of Change objects
      */
     fun generateChanges(
         tableInfos: List<MysqlTableInfo>,
-        sequenceDetails: List<MysqlSequenceDetail>
     ): List<Change> {
         val changes = mutableListOf<Change>()
-        val processedSequences = mutableListOf<String>()
 
         // Process tables
         tableInfos.forEach { tableInfo ->
@@ -145,19 +116,11 @@ class MysqlChangeGenerator {
                 tableInfo.columnDetails
             )
             changes.addAll(tableChanges)
-            processedSequences.addAll(tableSequences)
         }
 
         // Process foreign keys
         val allConstraints = tableInfos.flatMap { it.columnConstraints }
         changes.addAll(generateForeignKeyChanges(allConstraints))
-
-        // Process standalone sequences (not owned by columns)
-        // For MySQL 8.0+ this might do something, for older versions it will do nothing
-        val standaloneSequences = sequenceDetails.filter { sequenceDetail ->
-            !processedSequences.contains(sequenceDetail.sequenceName)
-        }
-        changes.addAll(generateSequenceChanges(standaloneSequences))
 
         return changes
     }

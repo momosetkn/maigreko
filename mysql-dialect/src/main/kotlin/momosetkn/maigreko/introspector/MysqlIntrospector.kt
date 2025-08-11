@@ -21,7 +21,7 @@ class MysqlIntrospector(
      * @return List of Change objects
      */
     override fun introspect(): List<Change> {
-        val (tableInfos, sequenceDetails) = infoService.fetchAll()
-        return changeGenerator.generateChanges(tableInfos, sequenceDetails)
+        val tableInfos = infoService.fetchAll()
+        return changeGenerator.generateChanges(tableInfos)
     }
 }
