@@ -402,7 +402,7 @@ class MysqlChangeGeneratorIntegrationSpec : FunSpec({
                 )
             }
 
-            val (changes, originalDdl, resultDdl) = subject(connection)
+            val (changes, originalDdl, resultingDdl) = subject(connection)
 
             // Verify AUTO_INCREMENT types
             val autoIncrementTable =
@@ -425,7 +425,7 @@ class MysqlChangeGeneratorIntegrationSpec : FunSpec({
             intColumn.autoIncrement shouldBe false
             bigintColumn.autoIncrement shouldBe false
 
-            resultDdl shouldBe originalDdl
+            resultingDdl.removeDumpCompletedLine() shouldBe originalDdl.removeDumpCompletedLine()
         }
     }
 })

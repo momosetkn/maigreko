@@ -2,6 +2,7 @@ package momosetkn
 
 import org.testcontainers.containers.Container
 import org.testcontainers.containers.MySQLContainer
+import org.testcontainers.utility.DockerImageName
 import java.sql.DriverManager
 import kotlin.system.measureTimeMillis
 
@@ -15,8 +16,8 @@ object MysqlDatabase {
         }
 
     fun start() {
-        val image =
-            org.testcontainers.utility.DockerImageName.parse("mysql:latest")
+        val image = DockerImageName.parse(BuildConfig.ContainerImage.MYSQL)
+            .asCompatibleSubstituteFor("mysql")
         container = MySQLContainer(image)
         val launchTime = measureTimeMillis { startedContainer.start() }
 

@@ -25,6 +25,11 @@ class VersioningSpec : FunSpec({
         PostgresqlDatabase.clear()
     }
 
+    val sqlCommentRegex = Regex("^--.*\n", RegexOption.MULTILINE)
+    fun String.deleteSqlComments(): String {
+        return this.replace(sqlCommentRegex, "")
+    }
+
     context("double forward") {
         test("can migrate") {
             val createTable = CreateTable(
@@ -48,17 +53,16 @@ class VersioningSpec : FunSpec({
             versioning.forward(changeSet)
             versioning.forward(changeSet)
 
-            PostgresqlDatabase.generateDdl() shouldBe """
+            PostgresqlDatabase.generateDdl().deleteSqlComments() shouldBe """
                 --
                 -- PostgreSQL database dump
                 --
 
-                -- Dumped from database version 15.8 (Debian 15.8-1.pgdg120+1)
-                -- Dumped by pg_dump version 15.8 (Debian 15.8-1.pgdg120+1)
 
                 SET statement_timeout = 0;
                 SET lock_timeout = 0;
                 SET idle_in_transaction_session_timeout = 0;
+                SET transaction_timeout = 0;
                 SET client_encoding = 'UTF8';
                 SET standard_conforming_strings = on;
                 SELECT pg_catalog.set_config('search_path', '', false);
@@ -156,7 +160,7 @@ class VersioningSpec : FunSpec({
                 --
 
 
-            """.trimIndent()
+            """.trimIndent().deleteSqlComments()
         }
     }
 
@@ -183,17 +187,16 @@ class VersioningSpec : FunSpec({
             versioning.forward(changeSet)
             versioning.rollback(changeSet)
 
-            PostgresqlDatabase.generateDdl() shouldBe """
+            PostgresqlDatabase.generateDdl().deleteSqlComments() shouldBe """
                 --
                 -- PostgreSQL database dump
                 --
 
-                -- Dumped from database version 15.8 (Debian 15.8-1.pgdg120+1)
-                -- Dumped by pg_dump version 15.8 (Debian 15.8-1.pgdg120+1)
 
                 SET statement_timeout = 0;
                 SET lock_timeout = 0;
                 SET idle_in_transaction_session_timeout = 0;
+                SET transaction_timeout = 0;
                 SET client_encoding = 'UTF8';
                 SET standard_conforming_strings = on;
                 SELECT pg_catalog.set_config('search_path', '', false);
@@ -272,7 +275,7 @@ class VersioningSpec : FunSpec({
                 --
 
 
-            """.trimIndent()
+            """.trimIndent().deleteSqlComments()
         }
     }
 })

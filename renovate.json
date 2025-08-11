@@ -2,5 +2,15 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "config:recommended"
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["gradle/libs.versions.toml"],
+      "matchStrings": [
+        "containerImage-[a-z0-9-_]+\\s*=\\s*\"(?<depName>[a-z0-9-_/]+):(?<currentValue>[a-zA-Z0-9._-]+)\""
+      ],
+      "datasourceTemplate": "docker"
+    }
   ]
 }

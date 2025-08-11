@@ -2,6 +2,7 @@ package momosetkn
 
 import org.testcontainers.containers.Container
 import org.testcontainers.containers.PostgreSQLContainer
+import org.testcontainers.utility.DockerImageName
 import java.sql.DriverManager
 import kotlin.system.measureTimeMillis
 import kotlin.use
@@ -16,8 +17,8 @@ object PostgresqlDatabase {
         }
 
     fun start() {
-        val image =
-            org.testcontainers.utility.DockerImageName.parse("postgres:15.8")
+        val image = DockerImageName.parse(BuildConfig.ContainerImage.POSTGRESQL)
+            .asCompatibleSubstituteFor("postgres")
         container = PostgreSQLContainer(image)
         val launchTime =
             measureTimeMillis { startedContainer.start() }
