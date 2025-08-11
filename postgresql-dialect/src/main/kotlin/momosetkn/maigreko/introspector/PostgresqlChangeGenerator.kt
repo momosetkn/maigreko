@@ -304,6 +304,7 @@ class PostgresqlChangeGenerator {
      * @param visiting Set of tables currently being visited (for cycle detection)
      * @param result List to store the sorted table names
      */
+    @Suppress("LongParameterList", "ReturnCount")
     private fun visitTableImmutable(
         tableName: String,
         tableCreationMap: Map<String, CreateTable>,
@@ -319,7 +320,7 @@ class PostgresqlChangeGenerator {
 
         // Detect cycles
         if (visiting.contains(tableName)) {
-            throw IllegalStateException("Circular dependency detected involving table: $tableName")
+            error("Circular dependency detected involving table: $tableName")
         }
 
         // Mark as being visited
