@@ -10,7 +10,7 @@ kotlinxCoroutines = "1.10.2"
 kotest = "5.9.1"
 detekt = "1.23.8"
 ktlint = "13.0.0"
-log4j = "2.23.1"
+log4j = "2.25.1"
 
 # Docker image
 containerImage-mysql = "mysql:8.4.6"
