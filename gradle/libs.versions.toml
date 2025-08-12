@@ -32,7 +32,7 @@ jdbcOracle = { module = "com.oracle.database.jdbc:ojdbc11", version = "21.19.0.0
 jdbcPostgresql = { module = "org.postgresql:postgresql", version = "42.7.7" }
 jdbcSqlserver = { module = "com.microsoft.sqlserver:mssql-jdbc", version = "12.10.1.jre11" }
 
-testcontainersBom = { module = "org.testcontainers:testcontainers-bom", version = "1.20.3" }
+testcontainersBom = { module = "org.testcontainers:testcontainers-bom", version = "1.21.3" }
 testcontainersMariadb = { module = "org.testcontainers:mariadb" }
 testcontainersMysql = { module = "org.testcontainers:mysql" }
 testcontainersOracle = { module = "org.testcontainers:oracle-xe" }
