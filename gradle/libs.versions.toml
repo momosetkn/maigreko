@@ -30,7 +30,7 @@ jdbcMariadb = { module = "org.mariadb.jdbc:mariadb-java-client", version = "3.5.
 jdbcMysql = { module = "mysql:mysql-connector-java", version = "8.0.33" }
 jdbcOracle = { module = "com.oracle.database.jdbc:ojdbc11", version = "21.15.0.0" }
 jdbcPostgresql = { module = "org.postgresql:postgresql", version = "42.7.7" }
-jdbcSqlserver = { module = "com.microsoft.sqlserver:mssql-jdbc", version = "12.8.1.jre11" }
+jdbcSqlserver = { module = "com.microsoft.sqlserver:mssql-jdbc", version = "12.10.1.jre11" }
 
 testcontainersBom = { module = "org.testcontainers:testcontainers-bom", version = "1.20.3" }
 testcontainersMariadb = { module = "org.testcontainers:mariadb" }
