@@ -7,6 +7,9 @@ plugins {
 // for can reference in allprojects scope
 val catalog = libs
 
+val jvmTargetVersion = 17
+val javaLanguageVersion = 21
+
 allprojects {
     apply(plugin = catalog.plugins.kotlinJvm.get().pluginId)
     apply(plugin = catalog.plugins.detekt.get().pluginId)
@@ -37,5 +40,23 @@ allprojects {
                 entry.file.toString().contains("/generated/")
             }
         }
+    }
+
+    kotlin {
+        jvmToolchain {
+            languageVersion.set(JavaLanguageVersion.of(javaLanguageVersion))
+        }
+
+        compilerOptions {
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.fromTarget(jvmTargetVersion.toString()))
+        }
+    }
+
+    java {
+        toolchain {
+            languageVersion.set(JavaLanguageVersion.of(javaLanguageVersion))
+        }
+        targetCompatibility = JavaVersion.toVersion(jvmTargetVersion)
+        sourceCompatibility = JavaVersion.toVersion(jvmTargetVersion)
     }
 }
