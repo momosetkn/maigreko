@@ -101,8 +101,10 @@ class ExampleTestSpec : FunSpec({
 - **ktlint**: Kotlin code formatting (version from libs.versions.toml)
 - **detekt**: Static code analysis with baseline files
 - **Configuration**: 
-  - ktlint baseline: `core/config/ktlint/baseline.xml` (currently empty)
-  - detekt baseline: `core/detekt-baseline.xml`
+  - ktlint config: `.editorconfig`
+  - ktlint baseline: `*/config/ktlint/baseline.xml` each modules
+  - detekt config: `config/detekt/detekt.yaml`
+  - detekt baseline: `*/detekt-baseline.xml` each modules
 
 ### Kotlin Conventions
 - Use object declarations for factory classes (see `IntrospectorFactory`)
