@@ -25,13 +25,13 @@ allprojects {
         }
     }
 
-//    detekt {
-//        parallel = true
-//        autoCorrect = true
-//        config.from("$rootDir/config/detekt.yml")
-//        buildUponDefaultConfig = true
-//        basePath = rootDir.absolutePath
-//    }
+    detekt {
+        parallel = true
+        autoCorrect = true
+        config.from("$rootDir/config/detekt/detekt.yml")
+        buildUponDefaultConfig = true
+        basePath = rootDir.absolutePath
+    }
 
     ktlint {
         version.set(catalog.ktlintRuleEngineCore.get().version)
