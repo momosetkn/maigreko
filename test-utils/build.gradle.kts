@@ -1,3 +1,6 @@
+val containerImageMysql = rootProject.properties["containerImage.mysql"] as String
+val containerImagePostgres = rootProject.properties["containerImage.postgres"] as String
+
 dependencies {
     // Apply the kotlinx bundle of dependencies from the version catalog (`gradle/libs.versions.toml`).
     implementation(libs.bundles.kotlinxEcosystem)
@@ -23,8 +26,8 @@ val generateBuildConfig by tasks.registering {
 
             object $className {
                 object ContainerImage {
-                    const val MYSQL = "${libs.versions.containerImage.mysql.get()}"
-                    const val POSTGRESQL = "${libs.versions.containerImage.postgres.get()}"
+                    const val MYSQL = "$containerImageMysql"
+                    const val POSTGRESQL = "$containerImagePostgres"
                     // TODO: Add more container images as needed
                 }
             }
