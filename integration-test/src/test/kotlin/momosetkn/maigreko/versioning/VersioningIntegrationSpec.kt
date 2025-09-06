@@ -10,11 +10,12 @@ import momosetkn.maigreko.change.ColumnConstraint
 import momosetkn.maigreko.change.CreateTable
 import momosetkn.maigreko.introspector.PostgresqlInfoService
 import momosetkn.maigreko.introspector.infras.PostgresqlColumnDetail
-import momosetkn.maigreko.sql.PostgreMigrateEngine
+import momosetkn.maigreko.sql.PostgresqlMigrateEngine
 import javax.sql.DataSource
 
 class VersioningIntegrationSpec : FunSpec({
     val logger = org.slf4j.LoggerFactory.getLogger(VersioningIntegrationSpec::class.java)
+    val postgresqlMigrateEngine = PostgresqlMigrateEngine()
 
     lateinit var versioning: Versioning
     lateinit var dataSource: DataSource
@@ -25,7 +26,7 @@ class VersioningIntegrationSpec : FunSpec({
         val container = PostgresqlDatabase.startedContainer
         dataSource = JdbcDatabaseContainerDataSource(container)
         postgreInfoService = PostgresqlInfoService(dataSource)
-        versioning = Versioning(dataSource, PostgreMigrateEngine)
+        versioning = Versioning(dataSource, postgresqlMigrateEngine)
     }
 
     beforeEach {
@@ -50,9 +51,8 @@ class VersioningIntegrationSpec : FunSpec({
             )
 
             val changeSet = ChangeSet(
-                filename = "filename",
-                author = "author",
-                changeSetId = "changeSetId",
+                migrationClass = "migrationClass",
+                changeSetId = 1,
                 changes = listOf(createTable),
             )
 
@@ -105,9 +105,8 @@ class VersioningIntegrationSpec : FunSpec({
             )
 
             val changeSet = ChangeSet(
-                filename = "filename",
-                author = "author",
-                changeSetId = "changeSetId",
+                migrationClass = "migrationClass",
+                changeSetId = 1,
                 changes = listOf(createTable),
             )
 

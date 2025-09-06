@@ -29,18 +29,13 @@ class VersioningBootstrap(
                     columnConstraint = ColumnConstraint(primaryKey = true, nullable = false,)
                 ),
                 Column(
-                    name = "filename",
-                    type = "varchar(255)",
-                    columnConstraint = ColumnConstraint(nullable = false)
-                ),
-                Column(
-                    name = "author",
+                    name = "migration_class",
                     type = "varchar(255)",
                     columnConstraint = ColumnConstraint(nullable = false)
                 ),
                 Column(
                     name = "change_set_id",
-                    type = "varchar(255)",
+                    type = "integer",
                     columnConstraint = ColumnConstraint(nullable = false,)
                 ),
                 Column(
