@@ -21,6 +21,7 @@ import javax.sql.DataSource
 
 class MysqlChangeGeneratorIntegrationSpec : FunSpec({
     val logger = org.slf4j.LoggerFactory.getLogger(MysqlChangeGeneratorIntegrationSpec::class.java)
+    val mysqlMigrateEngine = MysqlMigrateEngine()
 
     lateinit var connection: Connection
     lateinit var dataSource: DataSource
@@ -69,7 +70,7 @@ class MysqlChangeGeneratorIntegrationSpec : FunSpec({
 
         // Apply the changes using MysqlMigrateEngine
         changes.forEach { change ->
-            val ddl = MysqlMigrateEngine.forwardDdl(change)
+            val ddl = mysqlMigrateEngine.forwardDdl(change)
             connection.createStatement().use { statement ->
                 statement.execute(ddl)
             }

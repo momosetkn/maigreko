@@ -13,12 +13,13 @@ import momosetkn.maigreko.change.Change
 import momosetkn.maigreko.change.Column
 import momosetkn.maigreko.change.CreateSequence
 import momosetkn.maigreko.change.CreateTable
-import momosetkn.maigreko.sql.PostgreMigrateEngine
+import momosetkn.maigreko.sql.PostgresqlMigrateEngine
 import java.sql.Connection
 import javax.sql.DataSource
 
 class PostgresqlChangeGeneratorIntegrationSpec : FunSpec({
     val logger = org.slf4j.LoggerFactory.getLogger(PostgresqlChangeGeneratorIntegrationSpec::class.java)
+    val postgresqlMigrateEngine = PostgresqlMigrateEngine()
 
     lateinit var connection: Connection
     lateinit var dataSource: DataSource
@@ -68,7 +69,7 @@ class PostgresqlChangeGeneratorIntegrationSpec : FunSpec({
 
         // Apply the changes using PostgreMigrateEngine
         changes.forEach { change ->
-            val ddl = PostgreMigrateEngine.forwardDdl(change)
+            val ddl = postgresqlMigrateEngine.forwardDdl(change)
             connection.createStatement().use { statement ->
                 statement.execute(ddl)
             }

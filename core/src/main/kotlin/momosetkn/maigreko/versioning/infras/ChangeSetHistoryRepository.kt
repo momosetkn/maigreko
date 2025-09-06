@@ -23,7 +23,7 @@ class ChangeSetHistoryRepository(
     /**
      * Fetch a change set history by its ID
      */
-    fun fetchChangeSetHistory(changeSetId: String): ChangeSetHistory? {
+    fun fetchChangeSetHistory(changeSetId: Int): ChangeSetHistory? {
         val sql = """
             SELECT * FROM ${ChangeSetHistory.TABLE_NAME}
             WHERE ${ChangeSetHistory.CHANGE_SET_ID_COLUMN} = ?
@@ -44,17 +44,15 @@ class ChangeSetHistoryRepository(
     fun save(entity: ChangeSetHistory): ChangeSetHistory {
         val sql = """
             INSERT INTO ${ChangeSetHistory.TABLE_NAME} (
-                ${ChangeSetHistory.FILENAME_COLUMN},
-                ${ChangeSetHistory.AUTHOR_COLUMN},
+                ${ChangeSetHistory.MIGRATION_CLASS_COLUMN},
                 ${ChangeSetHistory.CHANGE_SET_ID_COLUMN},
                 ${ChangeSetHistory.TAG_COLUMN},
                 ${ChangeSetHistory.APPLIED_AT_COLUMN}
-            ) VALUES (?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?)
         """.trimIndent()
 
         val parameters = listOf(
-            entity.filename,
-            entity.author,
+            entity.migrationClass,
             entity.changeSetId,
             entity.tag,
             entity.appliedAt
@@ -85,9 +83,8 @@ class ChangeSetHistoryRepository(
     private fun mapResultSetToEntity(resultSet: ResultSet): ChangeSetHistory {
         return ChangeSetHistory(
             id = resultSet.getLong(ChangeSetHistory.ID_COLUMN),
-            filename = resultSet.getString(ChangeSetHistory.FILENAME_COLUMN),
-            author = resultSet.getString(ChangeSetHistory.AUTHOR_COLUMN),
-            changeSetId = resultSet.getString(ChangeSetHistory.CHANGE_SET_ID_COLUMN),
+            migrationClass = resultSet.getString(ChangeSetHistory.MIGRATION_CLASS_COLUMN),
+            changeSetId = resultSet.getInt(ChangeSetHistory.CHANGE_SET_ID_COLUMN),
             tag = resultSet.getString(ChangeSetHistory.TAG_COLUMN),
             appliedAt = resultSet.getTimestamp(ChangeSetHistory.APPLIED_AT_COLUMN).toLocalDateTime()
         )

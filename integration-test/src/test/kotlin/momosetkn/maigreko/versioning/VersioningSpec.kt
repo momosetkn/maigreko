@@ -8,17 +8,18 @@ import momosetkn.maigreko.change.ChangeSet
 import momosetkn.maigreko.change.Column
 import momosetkn.maigreko.change.ColumnConstraint
 import momosetkn.maigreko.change.CreateTable
-import momosetkn.maigreko.sql.PostgreMigrateEngine
+import momosetkn.maigreko.sql.PostgresqlMigrateEngine
 
 class VersioningSpec : FunSpec({
     lateinit var versioning: Versioning
     lateinit var dataSource: javax.sql.DataSource
+    val postgresqlMigrateEngine = PostgresqlMigrateEngine()
 
     beforeSpec {
         PostgresqlDatabase.start()
         val container = PostgresqlDatabase.startedContainer
         dataSource = JdbcDatabaseContainerDataSource(container)
-        versioning = Versioning(dataSource, PostgreMigrateEngine)
+        versioning = Versioning(dataSource, postgresqlMigrateEngine)
     }
 
     beforeEach {
@@ -44,9 +45,8 @@ class VersioningSpec : FunSpec({
             )
 
             val changeSet = ChangeSet(
-                filename = "filename",
-                author = "author",
-                changeSetId = "changeSetId",
+                migrationClass = "migrationClass",
+                changeSetId = 1,
                 changes = listOf(createTable),
             )
 
@@ -97,9 +97,8 @@ class VersioningSpec : FunSpec({
 
                 CREATE TABLE public.change_set_history (
                     id bigint NOT NULL,
-                    filename character varying(255) NOT NULL,
-                    author character varying(255) NOT NULL,
-                    change_set_id character varying(255) NOT NULL,
+                    migration_class character varying(255) NOT NULL,
+                    change_set_id integer NOT NULL,
                     tag character varying(255),
                     applied_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
                 );
@@ -178,9 +177,8 @@ class VersioningSpec : FunSpec({
             )
 
             val changeSet = ChangeSet(
-                filename = "filename",
-                author = "author",
-                changeSetId = "changeSetId",
+                migrationClass = "migrationClass",
+                changeSetId = 1,
                 changes = listOf(createTable),
             )
 
@@ -231,9 +229,8 @@ class VersioningSpec : FunSpec({
 
                 CREATE TABLE public.change_set_history (
                     id bigint NOT NULL,
-                    filename character varying(255) NOT NULL,
-                    author character varying(255) NOT NULL,
-                    change_set_id character varying(255) NOT NULL,
+                    migration_class character varying(255) NOT NULL,
+                    change_set_id integer NOT NULL,
                     tag character varying(255),
                     applied_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
                 );

@@ -1,8 +1,7 @@
 package momosetkn.maigreko.change
 
 data class ChangeSet(
-    val filename: String,
-    val author: String,
-    val changeSetId: String,
+    val migrationClass: String,
+    val changeSetId: Int,
     val changes: List<Change>,
 )
