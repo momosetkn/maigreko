@@ -1,6 +1,6 @@
 # Build artifacts and dependencies
 .gradle/
-build/
+**/build/
 gradle/wrapper/gradle-wrapper.jar
 gradlew
 gradlew.bat
