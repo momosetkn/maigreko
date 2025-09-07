@@ -14,7 +14,7 @@ class MaigrekoSpec : FunSpec({
                 val engine = MigrateEngineFactory.create("postgresql")
                 val maigreko = Maigreko(DummyDataSource, engine)
 
-                val ddls = maigreko.dryRunForward {
+                val ddls = maigreko.dryRunForward("migrationClass") {
                     changeSet {
                         createTable("users") {
                             column("id", "bigint") { constraint(primaryKey = true, nullable = false) }
@@ -35,7 +35,7 @@ class MaigrekoSpec : FunSpec({
                 val engine = MigrateEngineFactory.create("postgresql")
                 val maigreko = Maigreko(DummyDataSource, engine)
 
-                val ddls = maigreko.dryRunRollback {
+                val ddls = maigreko.dryRunRollback("migrationClass") {
                     changeSet {
                         createTable("users") {
                             column("id", "bigint") { constraint(primaryKey = true, nullable = false) }
