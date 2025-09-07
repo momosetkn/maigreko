@@ -1,0 +1,49 @@
+# Build artifacts and dependencies
+.gradle/
+build/
+gradle/wrapper/gradle-wrapper.jar
+gradlew
+gradlew.bat
+gradle.properties
+*/gradle.properties
+
+# IDE and editor files
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+out/
+
+# OS specific files
+.DS_Store
+Thumbs.db
+
+# Log files
+*.log
+logs/
+
+# Test artifacts
+testcontainers-*.properties
+
+# Documentation and metadata
+README.md
+LICENSE
+renovate.json
+
+# Configuration files that don't contain business logic
+*/config/ktlint/baseline.xml
+*/detekt-baseline.xml
+config/detekt/detekt.yml
+.editorconfig
+
+# Resources that are not source code
+*/src/main/resources/log4j2.xml
+*/src/test/resources/log4j2.xml
+*/src/main/resources/META-INF/services/*
+
+# Generated or compiled files
+*.class
+*.jar
+*.war
+*.ear
