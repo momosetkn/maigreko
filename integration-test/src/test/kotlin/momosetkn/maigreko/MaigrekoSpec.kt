@@ -7,70 +7,110 @@ import momosetkn.maigreko.dsl.MaigrekoMigration
 import momosetkn.maigreko.sql.MigrateEngineFactory
 
 class MaigrekoSpec : FunSpec({
-    // Minimal forward dry-run test
-    context("block: ChangeSetGroupDsl.() -> Unit") {
-        context("DryRunForward") {
-            test("should collect forward DDLs for create table") {
-                val engine = MigrateEngineFactory.create("postgresql")
-                val maigreko = Maigreko(DummyDataSource, engine)
+    context("each methods") {
+        // Minimal forward dry-run test
+        context("block: ChangeSetGroupDsl.() -> Unit") {
+            context("DryRunForward") {
+                test("should collect forward DDLs for create table") {
+                    val engine = MigrateEngineFactory.create("postgresql")
+                    val maigreko = Maigreko(DummyDataSource, engine)
 
-                val ddls = maigreko.dryRunForward("migrationClass") {
-                    changeSet {
-                        createTable("users") {
-                            column("id", "bigint") { constraint(primaryKey = true, nullable = false) }
-                            column("name", "varchar(255)") { }
+                    val results = maigreko.dryRunForward("migrationClass") {
+                        changeSet {
+                            createTable("users") {
+                                column("id", "bigint") { constraint(primaryKey = true, nullable = false) }
+                                column("name", "varchar(255)") { }
+                            }
                         }
                     }
-                }
 
-                ddls.size shouldBe 1
-                // The exact SQL differs per generator formatting; ensure it contains the table name.
-                (ddls.first().lowercase().contains("create table") && ddls.first().contains("users")) shouldBe true
+                    results.size shouldBe 1
+                    val ddl = results.first().ddls.joinToString("\n")
+                    ddl.lowercase().contains("create table") shouldBe true
+                    ddl.contains("users") shouldBe true
+                }
+            }
+
+            // Minimal rollback dry-run test
+            context("DryRunRollback") {
+                test("should collect rollback DDLs for drop table of created table") {
+                    val engine = MigrateEngineFactory.create("postgresql")
+                    val maigreko = Maigreko(DummyDataSource, engine)
+
+                    val results = maigreko.dryRunRollback("migrationClass") {
+                        changeSet {
+                            createTable("users") {
+                                column("id", "bigint") { constraint(primaryKey = true, nullable = false) }
+                            }
+                        }
+                    }
+
+                    results.size shouldBe 1
+                    val ddl = results.first().ddls.joinToString("\n")
+                    ddl.lowercase().contains("drop table") shouldBe true
+                    ddl.contains("users") shouldBe true
+                }
             }
         }
 
-        // Minimal rollback dry-run test
-        context("DryRunRollback") {
-            test("should collect rollback DDLs for drop table of created table") {
-                val engine = MigrateEngineFactory.create("postgresql")
-                val maigreko = Maigreko(DummyDataSource, engine)
-
-                val ddls = maigreko.dryRunRollback("migrationClass") {
-                    changeSet {
-                        createTable("users") {
-                            column("id", "bigint") { constraint(primaryKey = true, nullable = false) }
-                        }
+        context("MaigrekoMigration") {
+            @Suppress("unused", "ClassNaming")
+            class CreateUsersTableMigration : MaigrekoMigration({
+                changeSet {
+                    createTable("users_from_class") {
+                        column("id", "bigint") { constraint(primaryKey = true, nullable = false) }
+                        column("name", "varchar(255)") { }
                     }
                 }
+            })
 
-                ddls.size shouldBe 1
-                ddls.first().lowercase().contains("drop table") shouldBe true
-                ddls.first().contains("users") shouldBe true
+            context("DryRunForward") {
+                test("should collect forward DDLs from migration class") {
+                    val engine = MigrateEngineFactory.create("postgresql")
+                    val maigreko = Maigreko(DummyDataSource, engine)
+
+                    val results = maigreko.dryRunForward(CreateUsersTableMigration())
+
+                    results.size shouldBe 1
+                    val ddl = results.first().ddls.joinToString("\n")
+                    (ddl.lowercase().contains("create table") && ddl.contains("users_from_class")) shouldBe true
+                }
+            }
+
+            context("DryRunRollback") {
+                test("should collect rollback DDLs from migration class") {
+                    val engine = MigrateEngineFactory.create("postgresql")
+                    val maigreko = Maigreko(DummyDataSource, engine)
+
+                    val results = maigreko.dryRunRollback(CreateUsersTableMigration())
+
+                    results.size shouldBe 1
+                    val ddl = results.first().ddls.joinToString("\n")
+                    ddl.lowercase().contains("drop table") shouldBe true
+                    ddl.contains("users_from_class") shouldBe true
+                }
             }
         }
     }
 
-    context("MaigrekoMigration") {
-        // Simple migration class for testing
-        class CreateUsersTableMigration : MaigrekoMigration({
-            changeSet {
-                createTable("users_from_class") {
-                    column("id", "bigint") { constraint(primaryKey = true, nullable = false) }
-                    column("name", "varchar(255)") { }
-                }
-            }
-        })
-
+    context("sub package") {
         context("DryRunForward") {
             test("should collect forward DDLs from migration class") {
                 val engine = MigrateEngineFactory.create("postgresql")
                 val maigreko = Maigreko(DummyDataSource, engine)
 
-                val ddls = maigreko.dryRunForward(CreateUsersTableMigration())
+                val results = maigreko.dryRunMigrate("momosetkn.maigreko.migrations")
 
-                ddls.size shouldBe 1
-                val ddl = ddls.first()
-                (ddl.lowercase().contains("create table") && ddl.contains("users_from_class")) shouldBe true
+                results.size shouldBe 6
+                val migrationClassNames = results.map { it.migrationClassName }
+                migrationClassNames shouldBe listOf(
+                    "momosetkn.maigreko.migrations.Migration1",
+                    "momosetkn.maigreko.migrations.Migration2",
+                    "momosetkn.maigreko.migrations.sub1.Migration_sub1_1",
+                    "momosetkn.maigreko.migrations.sub1.Migration_sub1_2",
+                    "momosetkn.maigreko.migrations.sub1.subsub1.Migration_sub1_subsub1_1",
+                    "momosetkn.maigreko.migrations.sub1.subsub2.Migration_sub1_subsub2_1",
+                )
             }
         }
 
@@ -79,12 +119,18 @@ class MaigrekoSpec : FunSpec({
                 val engine = MigrateEngineFactory.create("postgresql")
                 val maigreko = Maigreko(DummyDataSource, engine)
 
-                val ddls = maigreko.dryRunRollback(CreateUsersTableMigration())
+                val results = maigreko.dryRunRollback("momosetkn.maigreko.migrations")
 
-                ddls.size shouldBe 1
-                val ddl = ddls.first()
-                ddl.lowercase().contains("drop table") shouldBe true
-                ddl.contains("users_from_class") shouldBe true
+                results.size shouldBe 6
+                val migrationClassNames = results.map { it.migrationClassName }
+                migrationClassNames shouldBe listOf(
+                    "momosetkn.maigreko.migrations.Migration1",
+                    "momosetkn.maigreko.migrations.Migration2",
+                    "momosetkn.maigreko.migrations.sub1.Migration_sub1_1",
+                    "momosetkn.maigreko.migrations.sub1.Migration_sub1_2",
+                    "momosetkn.maigreko.migrations.sub1.subsub1.Migration_sub1_subsub1_1",
+                    "momosetkn.maigreko.migrations.sub1.subsub2.Migration_sub1_subsub2_1",
+                )
             }
         }
     }
