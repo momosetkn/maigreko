@@ -1,15 +1,18 @@
 package momosetkn.maigreko
 
+import momosetkn.maigreko.dialect.Dialect
+import momosetkn.maigreko.dialect.DialectFactory
 import momosetkn.maigreko.dsl.ChangeSetGroupDsl
 import momosetkn.maigreko.dsl.MaigrekoMigration
+import momosetkn.maigreko.introspector.IntrospectorBuilder
 import momosetkn.maigreko.sql.MigrateEngine
-import momosetkn.maigreko.sql.MigrateEngineFactory
 import momosetkn.maigreko.versioning.Versioning
 import javax.sql.DataSource
 
 class Maigreko(
     private val dataSource: DataSource,
     private val migrateEngine: MigrateEngine,
+    private val introspectorBuilder: IntrospectorBuilder,
 ) {
     private val versioning = Versioning(dataSource, migrateEngine)
     private val forwardDslInterpreter = ForwardDslInterpreter(versioning)
@@ -17,7 +20,24 @@ class Maigreko(
 
     constructor(dataSource: DataSource) : this(
         dataSource = dataSource,
-        migrateEngine = MigrateEngineFactory.create(dataSource),
+        dialect = DialectFactory.create(dataSource),
+    )
+
+    constructor(dataSource: DataSource, dialect: Dialect) : this(
+        dataSource = dataSource,
+        migrateEngine = dialect.migrateEngine,
+        introspectorBuilder = dialect.introspectorBuilder,
+    )
+
+    // Backward-compatible constructor used in tests where only MigrateEngine is provided.
+    constructor(dataSource: DataSource, migrateEngine: MigrateEngine) : this(
+        dataSource = dataSource,
+        migrateEngine = migrateEngine,
+        introspectorBuilder = object : IntrospectorBuilder {
+            override fun build(dataSource: javax.sql.DataSource): momosetkn.maigreko.introspector.Introspector {
+                throw UnsupportedOperationException("Introspection is not available in this Maigreko constructor")
+            }
+        },
     )
 
     // block

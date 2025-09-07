@@ -36,6 +36,8 @@ testcontainersPostgresql = { module = "org.testcontainers:postgresql" }
 testcontainersSqlserver = { module = "org.testcontainers:mssqlserver" }
 testcontainersJdbc = { module = "org.testcontainers:jdbc" }
 
+mockk = { module = "io.mockk:mockk", version = "1.14.5" }
+
 komapperPlatform = { module = "org.komapper:komapper-platform", version = "5.4.0" }
 komapperStarterJdbc = { module = "org.komapper:komapper-starter-jdbc" }
 komapperProcessor = { module = "org.komapper:komapper-processor" }
