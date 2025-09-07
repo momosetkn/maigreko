@@ -65,7 +65,7 @@ class Versioning(
         }
     }
 
-    fun inMigration(
+    private fun inMigration(
         block: () -> Unit
     ) {
         db.withTransaction {
@@ -85,8 +85,7 @@ class Versioning(
 
 private fun ChangeSet.toChangeSetHistory(): ChangeSetHistory {
     return ChangeSetHistory(
-        filename = filename,
-        author = author,
+        migrationClass = migrationClass,
         changeSetId = changeSetId,
     )
 }

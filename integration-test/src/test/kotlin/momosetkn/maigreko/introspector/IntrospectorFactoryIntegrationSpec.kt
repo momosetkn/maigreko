@@ -4,12 +4,9 @@ import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
+import momosetkn.DummyDataSource
 import momosetkn.JdbcDatabaseContainerDataSource
 import momosetkn.PostgresqlDatabase
-import java.io.PrintWriter
-import java.sql.Connection
-import java.util.logging.Logger
-import javax.sql.DataSource
 
 /**
  * Integration test for IntrospectorFactory.
@@ -73,15 +70,3 @@ class IntrospectorFactoryIntegrationSpec : FunSpec({
         }
     }
 })
-
-object DummyDataSource : DataSource {
-    override fun getConnection(): Connection = TODO()
-    override fun getConnection(username: String, password: String): Connection = TODO()
-    override fun getLogWriter(): PrintWriter = TODO()
-    override fun setLogWriter(out: PrintWriter) = TODO()
-    override fun setLoginTimeout(seconds: Int) = TODO()
-    override fun getLoginTimeout(): Int = TODO()
-    override fun getParentLogger(): Logger = TODO()
-    override fun <T : Any> unwrap(iface: Class<T>): T = TODO()
-    override fun isWrapperFor(iface: Class<*>): Boolean = TODO()
-}
