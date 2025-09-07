@@ -14,7 +14,6 @@ import momosetkn.maigreko.change.RenameTable
 
 interface MigrateEngine {
     val ddlGenerator: DDLGenerator
-    val name: String
 
     fun forwardDdl(change: Change): String {
         return when (change) {

@@ -9,11 +9,6 @@ import javax.sql.DataSource
  */
 class H2IntrospectorBuilder : IntrospectorBuilder {
     /**
-     * The name of the dialect this builder creates introspectors for.
-     */
-    override val name: String = "h2"
-
-    /**
      * No-arg constructor required by ServiceLoader.
      */
     constructor()

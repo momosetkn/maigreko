@@ -10,4 +10,5 @@ dependencies {
 
     // test
     testImplementation(libs.bundles.kotest)
+    testImplementation(libs.mockk)
 }
