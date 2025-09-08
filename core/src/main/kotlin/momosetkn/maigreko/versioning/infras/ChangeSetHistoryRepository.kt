@@ -39,6 +39,24 @@ class ChangeSetHistoryRepository(
     }
 
     /**
+     * Fetch all change set history rows
+     */
+    fun fetchAll(): List<ChangeSetHistory> {
+        val sql = """
+            SELECT * FROM ${ChangeSetHistory.TABLE_NAME}
+            ORDER BY ${ChangeSetHistory.ID_COLUMN}
+        """.trimIndent()
+
+        return jdbcExecutor.executeQuery(sql) { resultSet ->
+            val list = mutableListOf<ChangeSetHistory>()
+            while (resultSet.next()) {
+                list.add(mapResultSetToEntity(resultSet))
+            }
+            list
+        }
+    }
+
+    /**
      * Save a change set history
      */
     fun save(entity: ChangeSetHistory): ChangeSetHistory {
