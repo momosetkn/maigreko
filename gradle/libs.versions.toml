@@ -11,6 +11,8 @@ kotest = "6.0.3"
 detekt = "1.23.8"
 ktlint = "13.1.0"
 log4j = "2.25.1"
+testcontainerCore = "2.0.3"
+testcontainerDriver = "1.21.4"
 
 [libraries]
 kotlinGradlePlugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
@@ -28,13 +30,14 @@ jdbcOracle = { module = "com.oracle.database.jdbc:ojdbc11", version = "23.9.0.25
 jdbcPostgresql = { module = "org.postgresql:postgresql", version = "42.7.7" }
 jdbcSqlserver = { module = "com.microsoft.sqlserver:mssql-jdbc", version = "13.2.0.jre11" }
 
-testcontainersBom = { module = "org.testcontainers:testcontainers-bom", version = "1.21.3" }
-testcontainersMariadb = { module = "org.testcontainers:mariadb" }
-testcontainersMysql = { module = "org.testcontainers:mysql" }
-testcontainersOracle = { module = "org.testcontainers:oracle-xe" }
-testcontainersPostgresql = { module = "org.testcontainers:postgresql" }
-testcontainersSqlserver = { module = "org.testcontainers:mssqlserver" }
-testcontainersJdbc = { module = "org.testcontainers:jdbc" }
+testcontainersBom = { module = "org.testcontainers:testcontainers-bom", version.ref = "testcontainerCore" }
+
+testcontainersMariadb = { module = "org.testcontainers:mariadb", version.ref = "testcontainerDriver" }
+testcontainersMysql = { module = "org.testcontainers:mysql", version.ref = "testcontainerDriver" }
+testcontainersOracle = { module = "org.testcontainers:oracle-xe", version.ref = "testcontainerDriver" }
+testcontainersPostgresql = { module = "org.testcontainers:postgresql", version.ref = "testcontainerDriver" }
+testcontainersSqlserver = { module = "org.testcontainers:mssqlserver", version.ref = "testcontainerDriver" }
+testcontainersJdbc = { module = "org.testcontainers:jdbc", version.ref = "testcontainerDriver" }
 
 mockk = { module = "io.mockk:mockk", version = "1.14.5" }
 
