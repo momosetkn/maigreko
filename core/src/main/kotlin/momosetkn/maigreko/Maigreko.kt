@@ -126,7 +126,7 @@ class Maigreko(
         val maigrekoMigrationClazzs = findListClassesByPackage(packageName)
         maigrekoMigrationClazzs.forEach { maigrekoMigration ->
             val instance = maigrekoMigration.constructors.first().newInstance() as MaigrekoMigration
-            migrate(maigrekoMigration.javaClassName, instance.body)
+            rollback(maigrekoMigration.javaClassName, instance.body)
         }
     }
 
