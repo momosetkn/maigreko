@@ -9,10 +9,13 @@ import momosetkn.maigreko.change.Column
 import momosetkn.maigreko.change.ColumnConstraint
 import momosetkn.maigreko.change.CreateTable
 import momosetkn.maigreko.sql.PostgresqlMigrateEngine
+import momosetkn.maigreko.versioning.infras.ChangeSetHistoryRepository
 
 class VersioningSpec : FunSpec({
     lateinit var versioning: Versioning
     lateinit var dataSource: javax.sql.DataSource
+    lateinit var historyRepository: ChangeSetHistoryRepository
+
     val postgresqlMigrateEngine = PostgresqlMigrateEngine()
 
     beforeSpec {
@@ -20,6 +23,7 @@ class VersioningSpec : FunSpec({
         val container = PostgresqlDatabase.startedContainer
         dataSource = JdbcDatabaseContainerDataSource(container)
         versioning = Versioning(dataSource, postgresqlMigrateEngine)
+        historyRepository = ChangeSetHistoryRepository(dataSource)
     }
 
     beforeEach {
@@ -31,29 +35,30 @@ class VersioningSpec : FunSpec({
         return this.replace(sqlCommentRegex, "")
     }
 
-    context("double forward") {
-        test("can migrate") {
-            val createTable = CreateTable(
-                tableName = "migrations",
-                columns = listOf(
-                    Column(
-                        name = "version",
-                        type = "character varying(255)",
-                        columnConstraint = ColumnConstraint(primaryKey = true, nullable = false)
+    context("check ddl") {
+        context("double forward") {
+            test("can migrate") {
+                val createTable = CreateTable(
+                    tableName = "migrations",
+                    columns = listOf(
+                        Column(
+                            name = "version",
+                            type = "character varying(255)",
+                            columnConstraint = ColumnConstraint(primaryKey = true, nullable = false)
+                        )
                     )
                 )
-            )
 
-            val changeSet = ChangeSet(
-                migrationClass = "migrationClass",
-                changeSetId = 1,
-                changes = listOf(createTable),
-            )
+                val changeSet = ChangeSet(
+                    migrationClass = "migrationClass",
+                    changeSetId = 1,
+                    changes = listOf(createTable),
+                )
 
-            versioning.forward(changeSet)
-            versioning.forward(changeSet)
+                versioning.forward(changeSet)
+                versioning.forward(changeSet)
 
-            PostgresqlDatabase.generateDdl().deleteSqlComments() shouldBe """
+                PostgresqlDatabase.generateDdl().deleteSqlComments() shouldBe """
                 --
                 -- PostgreSQL database dump
                 --
@@ -159,33 +164,33 @@ class VersioningSpec : FunSpec({
                 --
 
 
-            """.trimIndent().deleteSqlComments()
+                """.trimIndent().deleteSqlComments()
+            }
         }
-    }
 
-    context("rollback") {
-        test("can migrate") {
-            val createTable = CreateTable(
-                tableName = "migrations",
-                columns = listOf(
-                    Column(
-                        name = "version",
-                        type = "character varying(255)",
-                        columnConstraint = ColumnConstraint(primaryKey = true, nullable = false)
+        context("rollback") {
+            test("can migrate") {
+                val createTable = CreateTable(
+                    tableName = "migrations",
+                    columns = listOf(
+                        Column(
+                            name = "version",
+                            type = "character varying(255)",
+                            columnConstraint = ColumnConstraint(primaryKey = true, nullable = false)
+                        )
                     )
                 )
-            )
 
-            val changeSet = ChangeSet(
-                migrationClass = "migrationClass",
-                changeSetId = 1,
-                changes = listOf(createTable),
-            )
+                val changeSet = ChangeSet(
+                    migrationClass = "migrationClass",
+                    changeSetId = 1,
+                    changes = listOf(createTable),
+                )
 
-            versioning.forward(changeSet)
-            versioning.rollback(changeSet)
+                versioning.forward(changeSet)
+                versioning.rollback(changeSet)
 
-            PostgresqlDatabase.generateDdl().deleteSqlComments() shouldBe """
+                PostgresqlDatabase.generateDdl().deleteSqlComments() shouldBe """
                 --
                 -- PostgreSQL database dump
                 --
@@ -272,7 +277,162 @@ class VersioningSpec : FunSpec({
                 --
 
 
-            """.trimIndent().deleteSqlComments()
+                """.trimIndent().deleteSqlComments()
+            }
+        }
+    }
+
+    context("Migration pattern test") {
+
+        // Helpers to build simple, independent change sets: A, B, C, D
+        fun createTableChangeSet(id: Int, tableName: String): ChangeSet = ChangeSet(
+            migrationClass = "migrationClass",
+            changeSetId = id,
+            changes = listOf(
+                CreateTable(
+                    tableName = tableName,
+                    columns = listOf(
+                        Column(
+                            name = "id",
+                            type = "bigint",
+                            columnConstraint = ColumnConstraint(primaryKey = true, nullable = false)
+                        )
+                    )
+                )
+            )
+        )
+
+        val changeSetA = createTableChangeSet(1, "t_a")
+        val changeSetB = createTableChangeSet(2, "t_b")
+        val changeSetC = createTableChangeSet(3, "t_c")
+        val changeSetD = createTableChangeSet(4, "t_d")
+
+        fun historyIds(): Set<Int> = historyRepository.fetchAll().map { it.changeSetId }.toSet()
+
+        beforeEach {
+            PostgresqlDatabase.clear()
+        }
+
+        context("Forward (All)") {
+            test("Apply A, B, C in order") {
+                versioning.forward(listOf(changeSetA, changeSetB, changeSetC))
+
+                historyIds() shouldBe setOf(
+                    changeSetA.changeSetId,
+                    changeSetB.changeSetId,
+                    changeSetC.changeSetId,
+                )
+            }
+        }
+
+        context("Rollback (All)") {
+            test("Rollback all applied A, B, C") {
+                versioning.forward(listOf(changeSetA, changeSetB, changeSetC))
+                versioning.rollback(listOf(changeSetA, changeSetB, changeSetC))
+
+                historyIds() shouldBe emptySet()
+            }
+        }
+
+        context("Forward → Rollback (All)") {
+            test("A, B, C → rollback all") {
+                versioning.forward(listOf(changeSetA, changeSetB, changeSetC))
+                versioning.rollback(listOf(changeSetA, changeSetB, changeSetC))
+
+                historyIds() shouldBe emptySet()
+            }
+        }
+
+        context("Rollback → Forward (All)") {
+            test("After rollback → apply A, B, C again") {
+                versioning.forward(listOf(changeSetA, changeSetB, changeSetC))
+                versioning.rollback(listOf(changeSetA, changeSetB, changeSetC))
+                versioning.forward(listOf(changeSetA, changeSetB, changeSetC))
+                // idempotency check: calling forward again should keep same state
+                versioning.forward(listOf(changeSetA, changeSetB, changeSetC))
+
+                historyIds() shouldBe setOf(
+                    changeSetA.changeSetId,
+                    changeSetB.changeSetId,
+                    changeSetC.changeSetId,
+                )
+            }
+        }
+
+        context("Forward (Partial)") {
+            test("A only") {
+                versioning.forward(changeSetA)
+                historyIds() shouldBe setOf(changeSetA.changeSetId)
+            }
+
+            test("A, B only") {
+                versioning.forward(listOf(changeSetA, changeSetB))
+                historyIds() shouldBe setOf(changeSetA.changeSetId, changeSetB.changeSetId)
+            }
+
+            test("B, C only") {
+                versioning.forward(listOf(changeSetB, changeSetC))
+                historyIds() shouldBe setOf(changeSetB.changeSetId, changeSetC.changeSetId)
+            }
+        }
+
+        context("Rollback (Partial)") {
+            test("Applied A, B, C → rollback C only") {
+                versioning.forward(listOf(changeSetA, changeSetB, changeSetC))
+                versioning.rollback(changeSetC)
+
+                historyIds() shouldBe setOf(changeSetA.changeSetId, changeSetB.changeSetId)
+            }
+        }
+
+        context("Forward → Rollback (Partial)") {
+            test("Applied A, B → rollback B → re-apply B") {
+                versioning.forward(listOf(changeSetA, changeSetB))
+                versioning.rollback(changeSetB)
+
+                historyIds() shouldBe setOf(changeSetA.changeSetId)
+
+                versioning.forward(changeSetB)
+                historyIds() shouldBe setOf(changeSetA.changeSetId, changeSetB.changeSetId)
+            }
+        }
+
+        context("Rollback → Forward (Partial)") {
+            test("Applied A, B, C → rollback B → forward C → re-apply B") {
+                versioning.forward(listOf(changeSetA, changeSetB, changeSetC))
+                versioning.rollback(changeSetB)
+
+                // Apply C forward again (should be no-op and remain consistent)
+                versioning.forward(changeSetC)
+                historyIds() shouldBe setOf(changeSetA.changeSetId, changeSetC.changeSetId)
+
+                // Re-apply B
+                versioning.forward(changeSetB)
+                historyIds() shouldBe setOf(
+                    changeSetA.changeSetId,
+                    changeSetB.changeSetId,
+                    changeSetC.changeSetId,
+                )
+            }
+        }
+
+        context("Forward with gaps") {
+            test("Apply A, C, D → apply B later") {
+                versioning.forward(listOf(changeSetA, changeSetC, changeSetD))
+                historyIds() shouldBe setOf(
+                    changeSetA.changeSetId,
+                    changeSetC.changeSetId,
+                    changeSetD.changeSetId,
+                )
+
+                versioning.forward(changeSetB)
+                historyIds() shouldBe setOf(
+                    changeSetA.changeSetId,
+                    changeSetB.changeSetId,
+                    changeSetC.changeSetId,
+                    changeSetD.changeSetId,
+                )
+            }
         }
     }
 })

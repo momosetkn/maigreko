@@ -24,27 +24,47 @@ class RollbackDslInterpreter(
 class DryRunForwardDslInterpreter(
     private val migrateEngine: MigrateEngine,
 ) : DslInterpreter {
-    private var ddls = emptyList<String>()
+    private var results = emptyList<DryRunResult>()
 
     override fun interpret(migrationClassName: String, changeSet: ChangeSet) {
-        ddls = changeSet.changes.map { change ->
+        val ddls = changeSet.changes.map { change ->
             migrateEngine.forwardDdl(change)
         }
+        appendDryRunResult(migrationClassName = migrationClassName, changeSet = changeSet, ddls = ddls)
     }
 
-    fun getDdls(): List<String> = ddls
+    private fun appendDryRunResult(migrationClassName: String, changeSet: ChangeSet, ddls: List<String>,) {
+        results += DryRunResult(
+            migrationClassName = migrationClassName,
+            changeSet = changeSet,
+            ddls = ddls,
+            direction = DryRunResult.Direction.FORWARD,
+        )
+    }
+
+    fun getResults(): List<DryRunResult> = results
 }
 
 class DryRunRollbackDslInterpreter(
     private val migrateEngine: MigrateEngine,
 ) : DslInterpreter {
-    private var ddls = emptyList<String>()
+    private var results = emptyList<DryRunResult>()
 
     override fun interpret(migrationClassName: String, changeSet: ChangeSet) {
-        ddls = changeSet.changes.map { change ->
+        val ddls = changeSet.changes.map { change ->
             migrateEngine.rollbackDdl(change)
         }
+        appendDryRunResult(migrationClassName = migrationClassName, changeSet = changeSet, ddls = ddls)
     }
 
-    fun getDdls(): List<String> = ddls
+    private fun appendDryRunResult(migrationClassName: String, changeSet: ChangeSet, ddls: List<String>,) {
+        results += DryRunResult(
+            migrationClassName = migrationClassName,
+            changeSet = changeSet,
+            ddls = ddls,
+            direction = DryRunResult.Direction.BACKWARD,
+        )
+    }
+
+    fun getResults(): List<DryRunResult> = results
 }
