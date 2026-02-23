@@ -8,12 +8,6 @@ import javax.sql.DataSource
  */
 interface IntrospectorBuilder {
     /**
-     * The name of the dialect this builder creates introspectors for.
-     * This should be a lowercase string that matches the dialect name.
-     */
-    val name: String
-
-    /**
      * Builds an Introspector instance with the given DataSource.
      *
      * @param dataSource The DataSource to use for database connections

@@ -1,5 +1,5 @@
 package momosetkn.maigreko.sql
 
-object PostgreMigrateEngine : MigrateEngine {
+class PostgresqlMigrateEngine : MigrateEngine {
     override val ddlGenerator: DDLGenerator = PostgresqlDdlGenerator()
 }

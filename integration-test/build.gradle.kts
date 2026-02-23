@@ -14,6 +14,7 @@ dependencies {
 
     // test
     testImplementation(libs.bundles.kotest)
+    testImplementation(libs.mockk)
     testApi(platform(libs.testcontainersBom))
 
     // PostgreSQL dependencies

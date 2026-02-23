@@ -1,31 +1,29 @@
-package momosetkn.maigreko.versioning
+package momosetkn.maigreko
 
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import momosetkn.JdbcDatabaseContainerDataSource
 import momosetkn.PostgresqlDatabase
-import momosetkn.maigreko.change.ChangeSet
-import momosetkn.maigreko.change.Column
-import momosetkn.maigreko.change.ColumnConstraint
-import momosetkn.maigreko.change.CreateTable
 import momosetkn.maigreko.introspector.PostgresqlInfoService
 import momosetkn.maigreko.introspector.infras.PostgresqlColumnDetail
-import momosetkn.maigreko.sql.PostgreMigrateEngine
+import momosetkn.maigreko.sql.MigrateEngineFactory
+import org.slf4j.LoggerFactory
 import javax.sql.DataSource
 
-class VersioningIntegrationSpec : FunSpec({
-    val logger = org.slf4j.LoggerFactory.getLogger(VersioningIntegrationSpec::class.java)
+class MaigrekoPostgresqlIntegrationSpec : FunSpec({
+    val logger = LoggerFactory.getLogger(MaigrekoPostgresqlIntegrationSpec::class.java)
+    val engine = MigrateEngineFactory.create("postgresql")
 
-    lateinit var versioning: Versioning
     lateinit var dataSource: DataSource
     lateinit var postgreInfoService: PostgresqlInfoService
+    lateinit var maigreko: Maigreko
 
     beforeSpec {
         PostgresqlDatabase.start()
         val container = PostgresqlDatabase.startedContainer
         dataSource = JdbcDatabaseContainerDataSource(container)
         postgreInfoService = PostgresqlInfoService(dataSource)
-        versioning = Versioning(dataSource, PostgreMigrateEngine)
+        maigreko = Maigreko(dataSource, engine)
     }
 
     beforeEach {
@@ -38,26 +36,17 @@ class VersioningIntegrationSpec : FunSpec({
 
     context("double forward") {
         test("can migrate") {
-            val createTable = CreateTable(
-                tableName = "migrations",
-                columns = listOf(
-                    Column(
-                        name = "version",
-                        type = "character varying(255)",
-                        columnConstraint = ColumnConstraint(primaryKey = true, nullable = false)
-                    )
-                )
-            )
-
-            val changeSet = ChangeSet(
-                filename = "filename",
-                author = "author",
-                changeSetId = "changeSetId",
-                changes = listOf(createTable),
-            )
-
-            versioning.forward(changeSet)
-            versioning.forward(changeSet)
+            val changeSetBlock: ChangeSetGroupDslBlock = {
+                changeSet {
+                    createTable("migrations") {
+                        column("version", "character varying(255)") {
+                            constraint(primaryKey = true, nullable = false)
+                        }
+                    }
+                }
+            }
+            maigreko.migrate("migrationClass", changeSetBlock)
+            maigreko.migrate("migrationClass", changeSetBlock)
 
             val (tableInfos, sequenceDetail) = postgreInfoService.fetchAll()
             tableInfos.size shouldBe 1
@@ -93,26 +82,18 @@ class VersioningIntegrationSpec : FunSpec({
 
     context("rollback") {
         test("can migrate") {
-            val createTable = CreateTable(
-                tableName = "migrations",
-                columns = listOf(
-                    Column(
-                        name = "version",
-                        type = "character varying(255)",
-                        columnConstraint = ColumnConstraint(primaryKey = true, nullable = false)
-                    )
-                )
-            )
 
-            val changeSet = ChangeSet(
-                filename = "filename",
-                author = "author",
-                changeSetId = "changeSetId",
-                changes = listOf(createTable),
-            )
-
-            versioning.forward(changeSet)
-            versioning.rollback(changeSet)
+            val changeSetBlock: ChangeSetGroupDslBlock = {
+                changeSet {
+                    createTable("migrations") {
+                        column("version", "character varying(255)") {
+                            constraint(primaryKey = true, nullable = false)
+                        }
+                    }
+                }
+            }
+            maigreko.migrate("migrationClass", changeSetBlock)
+            maigreko.rollback("migrationClass", changeSetBlock)
 
             val (tableInfos, sequenceDetail) = postgreInfoService.fetchAll()
             tableInfos.size shouldBe 0

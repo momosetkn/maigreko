@@ -1,5 +1,5 @@
 package momosetkn.maigreko.sql
 
-object MysqlMigrateEngine : MigrateEngine {
+class MysqlMigrateEngine : MigrateEngine {
     override val ddlGenerator: DDLGenerator = MysqlDdlGenerator()
 }

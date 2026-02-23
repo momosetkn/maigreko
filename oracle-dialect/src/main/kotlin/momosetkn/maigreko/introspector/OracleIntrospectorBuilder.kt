@@ -9,11 +9,6 @@ import javax.sql.DataSource
  */
 class OracleIntrospectorBuilder : IntrospectorBuilder {
     /**
-     * The name of the dialect this builder creates introspectors for.
-     */
-    override val name: String = "oracle"
-
-    /**
      * Builds an OracleIntrospector instance with the given DataSource.
      *
      * @param dataSource The DataSource to use for database connections

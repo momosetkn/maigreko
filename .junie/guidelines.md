@@ -1,141 +1,140 @@
-# Maigreko Development Guidelines
+# Maigreko – Advanced Developer Guidelines
 
-## Project Overview
-Maigreko is a multi-module Kotlin database migration library supporting multiple database dialects (PostgreSQL, MySQL, Oracle, H2, MariaDB, SQL Server). The project uses a ServiceLoader pattern for dialect discovery and Testcontainers for database testing.
+Last verified: 2025-09-07 00:30
 
-## Build/Configuration Instructions
+This document collects project-specific knowledge to accelerate development, testing, and debugging of Maigreko.
 
-### Prerequisites
-- Java 21 (language version)
-- JVM target: 17
-- Gradle 8.14.3+ (uses wrapper)
+--------------------------------------------------------------------------------
 
-### Module Structure
-```
-core/                    - Core APIs and base functionality
-*-dialect/              - Database-specific implementations
-integration-test/       - Cross-dialect integration tests
-*-test-utils/          - Database-specific test utilities
-test-utils/            - Common test utilities
-```
+## 1. Build and Configuration
 
-### Build Commands
-```bash
-# Build entire project
-./gradlew build
+- Toolchain
+  - Java language level: 21 (Kotlin/JVM target: 17)
+  - Gradle: 8.14.3+ (wrapper included)
+- Top-level tasks
+  - Build all modules: `./gradlew build`
+  - Run all tests: `./gradlew test`
+  - Code quality: `./gradlew detekt ktlintCheck`
+- Module-scoped tasks (example for core)
+  - Build: `./gradlew :core:build`
+  - Test: `./gradlew :core:test`
+- Configuration on demand is enabled; configuration cache can be enabled if needed (validate locally before committing).
 
-# Build specific module
-./gradlew :core:build
+Project modules:
+- core: base APIs (DSL, engines, versioning) and common tests.
+- {dialect}-dialect: DB-specific implementations (PostgreSQL, MySQL, Oracle, H2, MariaDB, SQL Server). Each registers services via ServiceLoader.
+- integration-test: cross-dialect scenarios using Testcontainers and real DBs.
+- *-test-utils and test-utils: shared test infra (DummyDataSource, container helpers).
 
-# Run all tests
-./gradlew test
+Logging: Log4j2 via SLF4J. Default configs at core/src/main/resources/log4j2.xml and integration-test/src/test/resources/log4j2.xml.
 
-# Run tests for specific module
-./gradlew :core:test
+Gradle/Kotlin considerations:
+- KSP is in use via Komapper in dialect modules. Ensure your IDE has KSP enabled if you add or modify mapper entities.
+- JVM target remains 17 even though language is 21—mind API usage.
 
-# Code quality checks
-./gradlew detekt ktlintCheck
-```
+--------------------------------------------------------------------------------
 
-### Key Dependencies
-- **Komapper**: Database access framework with KSP annotation processing
-- **Log4j2 + SLF4j**: Logging framework
-- **Testcontainers**: Database testing with real database instances
-- **Various JDBC drivers**: Database connectivity
+## 2. Testing
 
-## Testing Information
+Framework: Kotest (FunSpec). Group with `context("...")` and define tests with `test("...")`.
 
-### Testing Framework
-- **Primary**: Kotest with FunSpec style
-- **Structure**: Use `context("description")` for grouping and `test("description")` for individual tests
-- **Assertions**: Use `shouldBe` and other Kotest matchers
+Common commands
+- All tests: `./gradlew test`
+- Per-module: `./gradlew :postgresql-dialect:test`, `./gradlew :mysql-dialect:test`, etc.
+- Detailed Gradle output (useful when investigating CI issues): `./gradlew test --info` or `--stacktrace`.
 
-### Test Example
-```kotlin
-class ExampleTestSpec : FunSpec({
-    
-    context("Basic functionality") {
-        test("should demonstrate simple assertion") {
-            val result = "hello" + " world"
-            result shouldBe "hello world"
-        }
-        
-        test("should work with collections") {
-            val list = listOf(1, 2, 3)
-            list.size shouldBe 3
-        }
-    }
-})
-```
+Integration tests
+- Module: `integration-test`
+- Use Testcontainers and real DBs (primarily PostgreSQL and MySQL).
+- Requires Docker running locally. If Docker is unavailable, skip by running non-integration modules only: `./gradlew :core:test`.
 
-### Running Tests
-```bash
-# Run all tests
-./gradlew test
+Dialect discovery in tests
+- ServiceLoader pattern is used for runtime discovery:
+  - Example: `MigrateEngineFactory.create("postgresql")` loads from META-INF/services provided by dialect modules.
+  - Ensure the relevant *-dialect module is on the test runtime classpath when writing tests relying on ServiceLoader.
 
-# Run specific module tests
-./gradlew :core:test
+2.1 Add a new unit test (example pattern)
+- Place under the appropriate module, e.g., `core/src/test/kotlin/.../*Spec.kt`.
+- Prefer dry-run paths for unit tests to avoid DB dependency:
+  - Use DummyDataSource from test-utils
+  - Create an engine via MigrateEngineFactory
+  - Exercise the DSL to produce DDL, assert on generated SQL text
 
-# Run with detailed output
-./gradlew test --info
+Example (already present and verified): integration-test/src/test/kotlin/momosetkn/maigreko/MaigrekoSpec.kt demonstrates dry-run forward and rollback using the DSL and a migration class.
 
-# Run integration tests (uses Testcontainers)
-./gradlew :integration-test:test
-```
+2.2 Minimal reproducible test (unit, no containers)
+If you need a pure unit example, mirror MaigrekoSpec patterns but keep it in a non‑integration module and assert only string content of DDLs.
 
-### Database Testing with Testcontainers
-- Integration tests use Testcontainers to spin up real database instances
-- PostgreSQL and MySQL are primarily used for integration testing
-- Each database dialect has its own test-utils module for setup helpers
-- Test databases are automatically started/stopped during test execution
+Run and verify
+- Example run (verified): `./gradlew test` — all modules passed locally with Testcontainers starting PostgreSQL 17.5.
+- For single module quick loop: `./gradlew :core:test`.
 
-### Adding New Tests
-1. Place tests in `src/test/kotlin/` following package structure
-2. Use Kotest FunSpec style with descriptive context blocks
-3. For database tests, use appropriate test-utils modules
-4. Follow existing naming conventions: `*Spec.kt` for test files
+--------------------------------------------------------------------------------
 
-## Code Style and Development Practices
+## 3. Development Notes and Conventions
 
-### Code Quality Tools
-- **ktlint**: Kotlin code formatting (version from libs.versions.toml)
-- **detekt**: Static code analysis with baseline files
-- **Configuration**: 
-  - ktlint config: `.editorconfig`
-  - ktlint baseline: `*/config/ktlint/baseline.xml` each modules
-  - detekt config: `config/detekt/detekt.yaml`
-  - detekt baseline: `*/detekt-baseline.xml` each modules
+3.1 ServiceLoader registration
+- IntrospectorBuilder implementations must be registered at: `META-INF/services/momosetkn.maigreko.introspector.IntrospectorBuilder`.
+- For engines, register at: `META-INF/services/momosetkn.maigreko.sql.MigrateEngine` (see postgres/mysql modules).
+- Missing or incorrect service registrations are the most common cause of "engine not found" or factory failures.
 
-### Kotlin Conventions
-- Use object declarations for factory classes (see `IntrospectorFactory`)
-- Comprehensive KDoc comments for public APIs
-- Proper exception handling with descriptive messages
-- Use ServiceLoader pattern for plugin discovery
-- Follow standard Kotlin naming conventions
+3.2 DSL and dry-run paths
+- The DSL is defined in core (ChangeSetDsl, TableDsl, ColumnDsl). DDL generation occurs via the dialect-specific DDLGenerator wired by the MigrateEngine.
+- For tests and tooling, prefer using Maigreko.dryRunForward / dryRunRollback to validate migrations without a live DB:
+  - Instantiate: `Maigreko(DummyDataSource, MigrateEngineFactory.create("postgresql"))`.
+  - Provide DSL block or MaigrekoMigration subclass.
 
-### Module Dependencies
-- Each dialect module registers services via `META-INF/services/`
-- Core module provides base abstractions
-- Dialect modules implement specific database logic
-- Test utilities are separated into dedicated modules
+3.3 Versioning
+- core/versioning provides ChangeSetHistory and Versioning APIs. Integration tests cover bootstrap and forward/rollback flows using real containers. When modifying versioning behavior, add both unit tests (logic) and integration tests (DB behavior).
 
-### ServiceLoader Pattern
-The project uses Java ServiceLoader for dynamic dialect discovery:
-```kotlin
-val builderLoader = ServiceLoader.load(IntrospectorBuilder::class.java)
-```
+3.4 Code quality
+- ktlint: configured via .editorconfig and per-module baselines: `*/config/ktlint/baseline.xml`.
+- detekt: rules at `config/detekt/detekt.yml`, baselines per module: `*/detekt-baseline.xml`.
+- Before committing code: `./gradlew ktlintCheck detekt`.
 
-Register implementations in `META-INF/services/` files.
+**IMPORTANT**: Before committing your code, continue making fixes until both `gradle ktlintCheck` and `gradle detekt` complete successfully. If these checks fail, fix any issues they report and run them again until they pass.
 
-### Development Workflow
-1. Make changes in appropriate module
-2. Run relevant tests: `./gradlew :module:test`
-3. Check code style: `./gradlew ktlintCheck detekt`
-4. Run integration tests if database changes: `./gradlew :integration-test:test`
-5. Build entire project: `./gradlew build`
+3.5 Troubleshooting
+- Service not found / engine null:
+  - Verify META-INF/services registrations in the relevant dialect module.
+  - Ensure the module is included in settings.gradle.kts and is a dependency of the module running tests.
+- Testcontainers failures:
+  - Ensure Docker is running.
+  - Use `--info` to get container startup logs.
+  - Temporarily restrict to unit tests: run only non-container modules.
+- SQL assertion instability:
+  - The exact SQL formatting differs per generator. Prefer contains() checks on key tokens and identifiers (see MaigrekoSpec).
 
-### Important Notes
-- KSP annotation processing is used (ensure proper IDE setup)
-- Testcontainers requires Docker for integration tests
-- Each dialect module is independent but follows common patterns
-- Log4j2 configuration in `src/main/resources/log4j2.xml`
+--------------------------------------------------------------------------------
+
+## 4. Verified Example – Create and Run a Simple Test
+
+Goal: demonstrate adding and executing a project-specific test.
+
+Overview
+- We rely on the existing MaigrekoSpec (integration-test module) as a working pattern that uses DummyDataSource + MigrateEngineFactory("postgresql") and asserts on DDL strings.
+- Verified command: `./gradlew test` completed successfully locally (PostgreSQL Testcontainers started automatically).
+
+Steps (re-usable pattern)
+1) Author a test using Kotest FunSpec and the DSL dry-run path (no live DB logic required):
+   - Create a file under your target module, e.g., `core/src/test/kotlin/mypkg/ExampleDryRunSpec.kt`.
+   - In the test, construct `Maigreko(DummyDataSource, MigrateEngineFactory.create("postgresql"))`.
+   - Call `dryRunForward { changeSet { createTable("t") { column("id", "bigint") { constraint(primaryKey = true, nullable = false) } } } }`.
+   - Assert: `ddl.lowercase().contains("create table") && ddl.contains("t")`.
+2) Run just that module: `./gradlew :core:test`.
+3) If the test requires dialect-specific behavior (e.g., MySQL differences), ensure the corresponding *-dialect module is in the test runtime classpath.
+
+Note: If you add a file only for experimental verification, consider removing it before committing if it isn’t providing long-term value.
+
+--------------------------------------------------------------------------------
+
+## 5. Commands Cheat Sheet
+- All: `./gradlew build` | `./gradlew test`
+- Module tests: `./gradlew :core:test`, `./gradlew :integration-test:test`
+- PostgreSQL-only dialect tests: `./gradlew :postgresql-dialect:test`
+- Lint/Static analysis: `./gradlew ktlintCheck detekt`
+- Verbose logs: `./gradlew test --info --stacktrace`
+
+--------------------------------------------------------------------------------
+
+This document is intended to be kept brief and specific. Update it whenever you discover new project-specific behaviors (e.g., a new dialect’s special registration, additional integration prerequisites, or recurring pitfalls).
