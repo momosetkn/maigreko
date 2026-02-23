@@ -3,10 +3,25 @@ package momosetkn.maigreko
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import momosetkn.DummyDataSource
+import momosetkn.JdbcDatabaseContainerDataSource
+import momosetkn.PostgresqlDatabase
 import momosetkn.maigreko.dsl.MaigrekoMigration
+import momosetkn.maigreko.introspector.PostgresqlInfoService
 import momosetkn.maigreko.sql.MigrateEngineFactory
+import javax.sql.DataSource
 
 class MaigrekoSpec : FunSpec({
+    val engine = MigrateEngineFactory.create("postgresql")
+    lateinit var dataSource: DataSource
+    lateinit var postgresqlInfoService: PostgresqlInfoService
+
+    beforeSpec {
+        PostgresqlDatabase.start()
+        val container = PostgresqlDatabase.startedContainer
+        dataSource = JdbcDatabaseContainerDataSource(container)
+        postgresqlInfoService = PostgresqlInfoService(dataSource)
+    }
+
     context("each methods") {
         // Minimal forward dry-run test
         context("block: ChangeSetGroupDsl.() -> Unit") {
@@ -89,6 +104,34 @@ class MaigrekoSpec : FunSpec({
                     ddl.lowercase().contains("drop table") shouldBe true
                     ddl.contains("users_from_class") shouldBe true
                 }
+            }
+        }
+    }
+
+    context("use real database") {
+        beforeEach {
+            PostgresqlDatabase.clear()
+        }
+        context("migrate and rollback methods") {
+            test("migrate should create table and rollback should drop it") {
+                val maigreko = Maigreko(dataSource, engine)
+                val migrationClassName = "migrationClassForExecute"
+
+                val changeSetBlock: ChangeSetGroupDslBlock = {
+                    changeSet {
+                        createTable("users_execute") {
+                            column("id", "bigint") { constraint(primaryKey = true, nullable = false) }
+                        }
+                    }
+                }
+
+                maigreko.migrate(migrationClassName, changeSetBlock)
+                postgresqlInfoService
+                    .fetchPostgresqlTableInfo().map { it.tableName } shouldBe listOf("users_execute")
+
+                maigreko.rollback(migrationClassName, changeSetBlock)
+                postgresqlInfoService
+                    .fetchPostgresqlTableInfo().size shouldBe 0
             }
         }
     }
